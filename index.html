@@ -190,6 +190,27 @@
     background:var(--surface); border:1px dashed var(--line-strong); border-radius:13px;
   }
 
+  .webhook-row{
+    background:var(--surface); border:1px solid var(--line); border-radius:13px;
+    padding:13px; margin-bottom:8px;
+  }
+  .webhook-row .webhook-top{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px; }
+  .webhook-row .webhook-date{ font-size:10.5px; color:var(--muted); }
+  .webhook-row .webhook-del{
+    background:none; border:none; color:var(--muted); cursor:pointer; font-size:13px; font-weight:600;
+  }
+  .webhook-row .webhook-del:hover{ color:var(--ink); }
+  .webhook-row .webhook-url-row{ display:flex; gap:8px; }
+  .webhook-row input{
+    background:var(--bg); border:1px solid var(--line-strong); color:var(--ink);
+    padding:9px 10px; font-size:11px; width:100%; border-radius:9px;
+  }
+  .webhook-row .webhook-copy{
+    flex:0 0 auto; background:var(--ink); color:#fff; border:none; border-radius:9px;
+    padding:9px 12px; font-size:11.5px; font-weight:600; cursor:pointer;
+  }
+  .webhook-row .webhook-copy:hover{ background:var(--green-deep); }
+
   /* Planilha */
   .sheet-wrap{ overflow-x:auto; background:var(--surface); border:1px solid var(--line); border-radius:14px; }
   table.sheet{ width:100%; border-collapse:collapse; font-size:12.5px; }
@@ -409,6 +430,13 @@
       <div class="d">lucro automático por vendas (webhook)</div>
     </span>
   </button>
+  <button class="menu-item" id="menuWebhooks">
+    <span class="ico" style="background:var(--ink);">W</span>
+    <span>
+      <div class="t">Webhook</div>
+      <div class="d">criar e gerenciar seus webhooks</div>
+    </span>
+  </button>
   <button class="menu-item" id="logoutBtn">
     <span class="ico" style="background:var(--muted);">⎋</span>
     <span>
@@ -431,6 +459,8 @@
     <div class="date-chip" id="todayLabel"></div>
   </div>
   <h1 class="sr-only" id="pageTitle">Caixa</h1>
+
+  <div id="financeView">
 
   <section class="hero" id="heroCard">
     <div class="hero-kicker" id="pageSub">gasto e lucro do dia · mês · ano</div>
@@ -474,16 +504,12 @@
   </div>
 
   <div class="add-card" id="webhookCard" style="display:none;">
-    <h2>Sua URL de webhook</h2>
-    <p style="font-size:12px;color:var(--muted);margin:0 0 12px;line-height:1.6;">
-      cole essa URL no seu bot/plataforma de vendas, no webhook de <strong>venda aprovada</strong>. toda venda aprovada vira lucro aqui automaticamente.
+    <h2>Vendas automáticas</h2>
+    <p style="font-size:12px;color:var(--muted);margin:0 0 14px;line-height:1.6;">
+      toda venda aprovada pelo webhook cai aqui como lucro automaticamente. crie/gerencie suas URLs de webhook (cada uma com um código próprio) no menu.
     </p>
-    <div class="form-row">
-      <input type="text" id="webhookUrlInput" readonly style="font-size:11.5px;">
-      <button class="submit-btn" id="copyWebhookBtn" style="width:auto;flex:0 0 auto;margin-top:0;padding:11px 16px;">copiar</button>
-    </div>
-    <div class="auth-msg ok" id="webhookCopyMsg" style="margin-top:8px;"></div>
-    <button class="submit-btn" id="syncVendasBtn" style="background:var(--ink);margin-top:14px;">🔄 atualizar vendas agora</button>
+    <button class="submit-btn" id="goToWebhooksBtn" style="background:var(--ink);">gerenciar meus webhooks</button>
+    <button class="submit-btn" id="syncVendasBtn" style="margin-top:10px;">🔄 atualizar vendas agora</button>
   </div>
 
   <div class="add-card">
@@ -526,6 +552,24 @@
       </div>
     </div>
     <div id="entriesList"></div>
+  </div>
+
+  </div><!-- /financeView -->
+
+  <div id="webhooksPanel" style="display:none;">
+    <div class="add-card">
+      <h2>Seus webhooks</h2>
+      <p style="font-size:12px;color:var(--muted);margin:0 0 14px;line-height:1.6;">
+        cada webhook tem um código aleatório próprio, então ninguém consegue adivinhar sua URL só sabendo seu usuário. cole a URL criada no webhook de <strong>venda aprovada</strong> da sua plataforma/bot — toda venda aprovada por ela vira lucro no Trampo automaticamente.
+      </p>
+      <button class="submit-btn" id="createWebhookBtn">+ criar novo webhook</button>
+    </div>
+    <div class="entries">
+      <div class="entries-head">
+        <h2>webhooks criados</h2>
+      </div>
+      <div id="webhooksList"><div class="empty">carregando...</div></div>
+    </div>
   </div>
 
   <footer>
@@ -726,14 +770,13 @@
     $('catFieldWrap').style.display = currentType === 'gasto' ? 'block' : 'none';
   }
 
-  function webhookUrlFor(username){
-    return location.origin + '/api/vendas?user=' + encodeURIComponent(username);
-  }
-
   async function setCategory(cat){
     category = cat;
     saveCategory();
     [$('menuTrampo'), $('menuVendas')].forEach(b => b.classList.toggle('active', b.dataset.cat === cat));
+    $('menuWebhooks').classList.remove('active');
+    $('financeView').style.display = 'block';
+    $('webhooksPanel').style.display = 'none';
 
     const isTrampo = cat === 'trampo';
     const isVendas = cat === 'vendas';
@@ -759,7 +802,6 @@
 
     $('webhookCard').style.display = isVendas ? 'block' : 'none';
     if(isVendas){
-      $('webhookUrlInput').value = webhookUrlFor(currentUser);
       await syncVendasLucro();
     }
 
@@ -769,6 +811,81 @@
 
   $('menuTrampo').addEventListener('click', () => { setCategory('trampo'); closeMenu(); });
   $('menuVendas').addEventListener('click', () => { setCategory('vendas'); closeMenu(); });
+
+  // ---- Painel de gerenciamento de Webhooks ----
+  async function showWebhooksPanel(){
+    [$('menuTrampo'), $('menuVendas')].forEach(b => b.classList.remove('active'));
+    $('menuWebhooks').classList.add('active');
+    $('financeView').style.display = 'none';
+    $('webhooksPanel').style.display = 'block';
+    $('categoryLabel').textContent = 'Webhook';
+    $('pageTitle').textContent = 'Caixa · Webhook';
+    await loadWebhooksList();
+  }
+
+  $('menuWebhooks').addEventListener('click', () => { showWebhooksPanel(); closeMenu(); });
+  $('goToWebhooksBtn').addEventListener('click', () => { showWebhooksPanel(); });
+
+  async function loadWebhooksList(){
+    const list = $('webhooksList');
+    list.innerHTML = '<div class="empty">carregando...</div>';
+    try{
+      const res = await fetch('/api/webhooks?user=' + encodeURIComponent(currentUser));
+      const webhooks = await res.json();
+      if(!Array.isArray(webhooks) || webhooks.length === 0){
+        list.innerHTML = '<div class="empty">nenhum webhook criado ainda</div>';
+        return;
+      }
+      list.innerHTML = webhooks.map(w => {
+        const url = location.origin + '/api/vendas?user=' + encodeURIComponent(currentUser) + '&code=' + encodeURIComponent(w.code);
+        const dateLabel = new Date(w.createdAt).toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit', year:'numeric'});
+        return `
+          <div class="webhook-row">
+            <div class="webhook-top">
+              <span class="webhook-date">criado em ${dateLabel}</span>
+              <button class="webhook-del" data-code="${w.code}">remover</button>
+            </div>
+            <div class="webhook-url-row">
+              <input type="text" readonly value="${url}">
+              <button class="webhook-copy" data-url="${url}">copiar</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    } catch(e){
+      list.innerHTML = '<div class="empty">não consegui carregar. tente de novo.</div>';
+    }
+  }
+
+  $('createWebhookBtn').addEventListener('click', async () => {
+    $('createWebhookBtn').disabled = true;
+    $('createWebhookBtn').textContent = 'criando...';
+    try{
+      await fetch('/api/webhooks?user=' + encodeURIComponent(currentUser), { method:'POST' });
+      await loadWebhooksList();
+    } catch(e){
+      alert('não consegui criar o webhook. tente de novo.');
+    }
+    $('createWebhookBtn').disabled = false;
+    $('createWebhookBtn').textContent = '+ criar novo webhook';
+  });
+
+  $('webhooksList').addEventListener('click', async (e) => {
+    const copyBtn = e.target.closest('.webhook-copy');
+    if(copyBtn){
+      navigator.clipboard.writeText(copyBtn.dataset.url).then(() => {
+        copyBtn.textContent = 'copiado!';
+        setTimeout(() => { copyBtn.textContent = 'copiar'; }, 1500);
+      });
+      return;
+    }
+    const delBtn = e.target.closest('.webhook-del');
+    if(delBtn){
+      if(!confirm('remover esse webhook? qualquer URL antiga com esse código vai parar de funcionar.')) return;
+      await fetch('/api/webhooks?user=' + encodeURIComponent(currentUser) + '&code=' + encodeURIComponent(delBtn.dataset.code), { method:'DELETE' });
+      await loadWebhooksList();
+    }
+  });
 
   // ---- Sincronizar vendas aprovadas (webhook) ----
   async function syncVendasLucro(){
@@ -798,14 +915,6 @@
       // api de webhook ainda não configurada ou offline — ignora silenciosamente
     }
   }
-
-  $('copyWebhookBtn').addEventListener('click', () => {
-    $('webhookUrlInput').select();
-    navigator.clipboard.writeText($('webhookUrlInput').value).then(() => {
-      $('webhookCopyMsg').textContent = 'copiado!';
-      setTimeout(() => { $('webhookCopyMsg').textContent = ''; }, 2000);
-    });
-  });
 
   $('syncVendasBtn').addEventListener('click', async () => {
     $('syncVendasBtn').textContent = 'atualizando...';

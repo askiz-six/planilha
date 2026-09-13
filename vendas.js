@@ -21,6 +21,16 @@ export default async function handler(req, res) {
   }
 
   if (req.method === 'POST') {
+    const code = (req.query.code || '').toString();
+    if (!code) {
+      return res.status(401).json({ error: 'faltando ?code= na URL do webhook' });
+    }
+    const validWebhooks = (await kv.get(`webhooks:${user}`)) || [];
+    const isValidCode = validWebhooks.some((w) => w.code === code);
+    if (!isValidCode) {
+      return res.status(401).json({ error: 'código de webhook inválido ou removido' });
+    }
+
     let body = req.body;
     if (typeof body === 'string') {
       try { body = JSON.parse(body); } catch (e) { body = null; }
