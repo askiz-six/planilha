@@ -402,6 +402,13 @@
       <div class="d">gasto e lucro do dia · mês · ano</div>
     </span>
   </button>
+  <button class="menu-item" id="menuVendas" data-cat="vendas">
+    <span class="ico" style="background:var(--green);">V</span>
+    <span>
+      <div class="t">Trampo</div>
+      <div class="d">lucro automático por vendas (webhook)</div>
+    </span>
+  </button>
   <button class="menu-item" id="logoutBtn">
     <span class="ico" style="background:var(--muted);">⎋</span>
     <span>
@@ -464,6 +471,19 @@
         <option value="todas">Tudo</option>
       </select>
     </div>
+  </div>
+
+  <div class="add-card" id="webhookCard" style="display:none;">
+    <h2>Sua URL de webhook</h2>
+    <p style="font-size:12px;color:var(--muted);margin:0 0 12px;line-height:1.6;">
+      cole essa URL no seu bot/plataforma de vendas, no webhook de <strong>venda aprovada</strong>. toda venda aprovada vira lucro aqui automaticamente.
+    </p>
+    <div class="form-row">
+      <input type="text" id="webhookUrlInput" readonly style="font-size:11.5px;">
+      <button class="submit-btn" id="copyWebhookBtn" style="width:auto;flex:0 0 auto;margin-top:0;padding:11px 16px;">copiar</button>
+    </div>
+    <div class="auth-msg ok" id="webhookCopyMsg" style="margin-top:8px;"></div>
+    <button class="submit-btn" id="syncVendasBtn" style="background:var(--ink);margin-top:14px;">🔄 atualizar vendas agora</button>
   </div>
 
   <div class="add-card">
@@ -679,7 +699,7 @@
     $('menuUserEmail').textContent = (users[username] && users[username].email) || username;
     setToday();
     loadEntries();
-    setCategory(category);
+    await setCategory(category);
   }
 
   // tenta continuar sessão já aberta neste navegador
@@ -706,33 +726,93 @@
     $('catFieldWrap').style.display = currentType === 'gasto' ? 'block' : 'none';
   }
 
-  function setCategory(cat){
+  function webhookUrlFor(username){
+    return location.origin + '/api/vendas?user=' + encodeURIComponent(username);
+  }
+
+  async function setCategory(cat){
     category = cat;
     saveCategory();
-    [$('menuTrampo')].forEach(b => b.classList.toggle('active', b.dataset.cat === cat));
+    [$('menuTrampo'), $('menuVendas')].forEach(b => b.classList.toggle('active', b.dataset.cat === cat));
 
     const isTrampo = cat === 'trampo';
-    $('categoryLabel').textContent = isTrampo ? 'Gasto e lucro do dia · mês · ano' : 'Dia a dia';
-    $('pageTitle').textContent = isTrampo ? 'Caixa · Gasto e lucro do dia · mês · ano' : 'Caixa · Dia a dia';
-    $('pageSub').textContent = isTrampo
-      ? 'gasto e lucro do dia · mês · ano'
-      : 'gastos pessoais do dia a dia · dia · mês · ano';
+    const isVendas = cat === 'vendas';
+    const showsLucro = isTrampo || isVendas;
 
-    // no "dia a dia" só existe gasto: esconde o alternador gasto/lucro e trava o tipo
-    $('typeToggle').style.display = isTrampo ? 'flex' : 'none';
-    currentType = isTrampo ? currentType : 'gasto';
+    const labels = {
+      trampo: ['Gasto e lucro do dia · mês · ano', 'gasto e lucro do dia · mês · ano'],
+      vendas: ['Trampo', 'lucro automático por vendas · gasto manual']
+    };
+    const [labelShort, labelSub] = labels[cat] || labels.trampo;
+    $('categoryLabel').textContent = labelShort;
+    $('pageTitle').textContent = 'Caixa · ' + labelShort;
+    $('pageSub').textContent = labelSub;
+
+    // no "vendas", o lucro vem sozinho do webhook — esconde o botão de lançar lucro manual
+    $('typeToggle').style.display = isVendas ? 'none' : 'flex';
+    currentType = isVendas ? 'gasto' : currentType;
     updateCategoryFieldVisibility();
 
-    // esconde lucro/saldo/barra quando for "dia a dia" (só gasto faz sentido)
-    $('statProfit').style.display = isTrampo ? 'block' : 'none';
-    $('statBalance').style.display = isTrampo ? 'block' : 'none';
-    $('statBar').style.display = isTrampo ? 'block' : 'none';
+    $('statProfit').style.display = showsLucro ? 'block' : 'none';
+    $('statBalance').style.display = showsLucro ? 'block' : 'none';
+    $('statBar').style.display = showsLucro ? 'block' : 'none';
+
+    $('webhookCard').style.display = isVendas ? 'block' : 'none';
+    if(isVendas){
+      $('webhookUrlInput').value = webhookUrlFor(currentUser);
+      await syncVendasLucro();
+    }
 
     $('categoryFilter').value = 'todas';
     render();
   }
 
   $('menuTrampo').addEventListener('click', () => { setCategory('trampo'); closeMenu(); });
+  $('menuVendas').addEventListener('click', () => { setCategory('vendas'); closeMenu(); });
+
+  // ---- Sincronizar vendas aprovadas (webhook) ----
+  async function syncVendasLucro(){
+    if(!currentUser) return;
+    try{
+      const res = await fetch('/api/vendas?user=' + encodeURIComponent(currentUser));
+      if(!res.ok) return;
+      const vendas = await res.json();
+      const existingIds = new Set(entries.filter(en => en.cat === 'vendas').map(en => en.id));
+      let added = false;
+      vendas.forEach(v => {
+        if(!existingIds.has(v.id)){
+          entries.push({
+            id: v.id,
+            cat: 'vendas',
+            type: 'lucro',
+            category: null,
+            value: v.value,
+            desc: v.desc,
+            date: v.date
+          });
+          added = true;
+        }
+      });
+      if(added) persistEntries();
+    } catch(e){
+      // api de webhook ainda não configurada ou offline — ignora silenciosamente
+    }
+  }
+
+  $('copyWebhookBtn').addEventListener('click', () => {
+    $('webhookUrlInput').select();
+    navigator.clipboard.writeText($('webhookUrlInput').value).then(() => {
+      $('webhookCopyMsg').textContent = 'copiado!';
+      setTimeout(() => { $('webhookCopyMsg').textContent = ''; }, 2000);
+    });
+  });
+
+  $('syncVendasBtn').addEventListener('click', async () => {
+    $('syncVendasBtn').textContent = 'atualizando...';
+    await syncVendasLucro();
+    render();
+    $('syncVendasBtn').textContent = '🔄 atualizar vendas agora';
+  });
 
   // ---- Tabs (período) ----
   $('tabs').addEventListener('click', (e) => {
@@ -1027,7 +1107,7 @@
     if(view === 'planilha'){
       const year = refDate.getFullYear();
       const monthIdx = refDate.getMonth();
-      const isTrampo = category === 'trampo';
+      const isTrampo = category === 'trampo' || category === 'vendas';
       const baseGasto = entries.filter(en => en.cat === category && en.type === 'gasto' && matchesCategoryFilter(en));
       const baseLucro = entries.filter(en => en.cat === category && en.type === 'lucro' && matchesCategoryFilter(en));
 
