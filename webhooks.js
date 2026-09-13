@@ -19,8 +19,13 @@ export default async function handler(req, res) {
   }
 
   if (req.method === 'POST') {
+    let body = req.body;
+    if (typeof body === 'string') {
+      try { body = JSON.parse(body); } catch (e) { body = {}; }
+    }
+    const name = (body && body.name ? String(body.name) : 'Webhook').slice(0, 60);
     const code = crypto.randomBytes(6).toString('hex');
-    const entry = { code, createdAt: new Date().toISOString() };
+    const entry = { code, name, createdAt: new Date().toISOString() };
     const list = (await kv.get(key)) || [];
     list.push(entry);
     await kv.set(key, list);

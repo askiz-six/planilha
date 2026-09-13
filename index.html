@@ -560,8 +560,14 @@
     <div class="add-card">
       <h2>Seus webhooks</h2>
       <p style="font-size:12px;color:var(--muted);margin:0 0 14px;line-height:1.6;">
-        cada webhook tem um código aleatório próprio, então ninguém consegue adivinhar sua URL só sabendo seu usuário. cole a URL criada no webhook de <strong>venda aprovada</strong> da sua plataforma/bot — toda venda aprovada por ela vira lucro no Trampo automaticamente.
+        cada webhook tem um código aleatório próprio, então ninguém consegue adivinhar sua URL só sabendo seu usuário. cole a URL criada no webhook de <strong>venda aprovada</strong> da sua plataforma/bot — toda venda aprovada por ela vira lucro no Trampo automaticamente, marcada com o nome que você der aqui.
       </p>
+      <div class="form-row stack">
+        <div class="field">
+          <label class="small">nome do webhook (ex: Bot Instagram, Bot Kwai...)</label>
+          <input type="text" id="webhookNameInput" placeholder="nome desse webhook">
+        </div>
+      </div>
       <button class="submit-btn" id="createWebhookBtn">+ criar novo webhook</button>
     </div>
     <div class="entries">
@@ -595,20 +601,36 @@
 
   const $ = (id) => document.getElementById(id);
 
-  function populateCategorySelects(){
-    const sel = $('categoriaInput');
-    GASTO_CATEGORIAS.forEach(c => {
+  function setSelectOptions(selEl, filterEl, options){
+    selEl.innerHTML = '<option value="">selecione...</option>';
+    options.forEach(c => {
       const opt = document.createElement('option');
       opt.value = c; opt.textContent = c;
-      sel.appendChild(opt);
+      selEl.appendChild(opt);
     });
-    const filter = $('categoryFilter');
-    GASTO_CATEGORIAS.forEach(c => {
+    filterEl.innerHTML = '<option value="todas">Tudo</option>';
+    options.forEach(c => {
       const opt = document.createElement('option');
       opt.value = c; opt.textContent = c;
-      filter.appendChild(opt);
+      filterEl.appendChild(opt);
     });
   }
+
+  function populateCategorySelects(){
+    setSelectOptions($('categoriaInput'), $('categoryFilter'), GASTO_CATEGORIAS);
+  }
+
+  async function populateCategorySelectsFromWebhooks(){
+    try{
+      const res = await fetch('/api/webhooks?user=' + encodeURIComponent(currentUser));
+      const webhooks = await res.json();
+      const names = Array.isArray(webhooks) ? webhooks.map(w => w.name || 'Webhook') : [];
+      setSelectOptions($('categoriaInput'), $('categoryFilter'), names.length ? names : ['Webhook']);
+    } catch(e){
+      setSelectOptions($('categoriaInput'), $('categoryFilter'), ['Webhook']);
+    }
+  }
+
   populateCategorySelects();
   const fmtMoney = (n) => 'R$ ' + n.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
   const pad = (n) => String(n).padStart(2,'0');
@@ -802,7 +824,10 @@
 
     $('webhookCard').style.display = isVendas ? 'block' : 'none';
     if(isVendas){
+      await populateCategorySelectsFromWebhooks();
       await syncVendasLucro();
+    } else {
+      populateCategorySelects();
     }
 
     $('categoryFilter').value = 'todas';
@@ -842,9 +867,10 @@
         return `
           <div class="webhook-row">
             <div class="webhook-top">
-              <span class="webhook-date">criado em ${dateLabel}</span>
+              <span style="font-weight:700;font-size:12.5px;">${escapeHtml(w.name || 'Webhook')}</span>
               <button class="webhook-del" data-code="${w.code}">remover</button>
             </div>
+            <div class="webhook-date" style="margin-bottom:6px;">criado em ${dateLabel}</div>
             <div class="webhook-url-row">
               <input type="text" readonly value="${url}">
               <button class="webhook-copy" data-url="${url}">copiar</button>
@@ -858,10 +884,16 @@
   }
 
   $('createWebhookBtn').addEventListener('click', async () => {
+    const name = $('webhookNameInput').value.trim() || 'Webhook';
     $('createWebhookBtn').disabled = true;
     $('createWebhookBtn').textContent = 'criando...';
     try{
-      await fetch('/api/webhooks?user=' + encodeURIComponent(currentUser), { method:'POST' });
+      await fetch('/api/webhooks?user=' + encodeURIComponent(currentUser), {
+        method:'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name })
+      });
+      $('webhookNameInput').value = '';
       await loadWebhooksList();
     } catch(e){
       alert('não consegui criar o webhook. tente de novo.');
@@ -902,7 +934,7 @@
             id: v.id,
             cat: 'vendas',
             type: 'lucro',
-            category: null,
+            category: v.category || null,
             value: v.value,
             desc: v.desc,
             date: v.date

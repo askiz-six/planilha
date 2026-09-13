@@ -26,8 +26,8 @@ export default async function handler(req, res) {
       return res.status(401).json({ error: 'faltando ?code= na URL do webhook' });
     }
     const validWebhooks = (await kv.get(`webhooks:${user}`)) || [];
-    const isValidCode = validWebhooks.some((w) => w.code === code);
-    if (!isValidCode) {
+    const matchedWebhook = validWebhooks.find((w) => w.code === code);
+    if (!matchedWebhook) {
       return res.status(401).json({ error: 'código de webhook inválido ou removido' });
     }
 
@@ -57,7 +57,8 @@ export default async function handler(req, res) {
       id: 'wh_' + (tx.id || tx.external_id || body.webhook_id || Date.now()),
       value: Number(tx.amount) || 0,
       desc: [tx.plan_name, tx.payment_method].filter(Boolean).join(' · ') || 'Venda aprovada',
-      date: dateOnly
+      date: dateOnly,
+      category: matchedWebhook.name || 'Webhook'
     };
 
     const list = (await kv.get(key)) || [];
