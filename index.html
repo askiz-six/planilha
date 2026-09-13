@@ -399,7 +399,7 @@
     <span class="ico">T</span>
     <span>
       <div class="t">Gasto do dia a dia</div>
-      <div class="d">gasto e lucro do trabalho</div>
+      <div class="d">gasto e lucro do dia a dia</div>
     </span>
   </button>
   <button class="menu-item" id="logoutBtn">
@@ -426,7 +426,7 @@
   <h1 class="sr-only" id="pageTitle">Caixa</h1>
 
   <section class="hero" id="heroCard">
-    <div class="hero-kicker" id="pageSub">gasto e lucro do trabalho</div>
+    <div class="hero-kicker" id="pageSub">gasto e lucro do dia a dia</div>
     <div id="statBalance">
       <div class="hero-value" id="totalSaldo">R$ 0,00</div>
       <div class="hero-sub">saldo neste período</div>
@@ -715,7 +715,7 @@
     $('categoryLabel').textContent = isTrampo ? 'Gasto do dia a dia' : 'Dia a dia';
     $('pageTitle').textContent = isTrampo ? 'Caixa · Gasto do dia a dia' : 'Caixa · Dia a dia';
     $('pageSub').textContent = isTrampo
-      ? 'gasto e lucro do trabalho · dia · mês · ano'
+      ? 'gasto e lucro do dia a dia · dia · mês · ano'
       : 'gastos pessoais do dia a dia · dia · mês · ano';
 
     // no "dia a dia" só existe gasto: esconde o alternador gasto/lucro e trava o tipo
