@@ -398,7 +398,7 @@
   <button class="menu-item active" id="menuTrampo" data-cat="trampo">
     <span class="ico">T</span>
     <span>
-      <div class="t">Trampo</div>
+      <div class="t">Gasto do dia a dia</div>
       <div class="d">gasto e lucro do trabalho</div>
     </span>
   </button>
@@ -419,7 +419,7 @@
     </button>
     <div class="brand">
       <span class="brand-name">Caixa</span>
-      <span class="cat-pill" id="categoryLabel">Trampo</span>
+      <span class="cat-pill" id="categoryLabel">Gasto do dia a dia</span>
     </div>
     <div class="date-chip" id="todayLabel"></div>
   </div>
@@ -712,8 +712,8 @@
     [$('menuTrampo')].forEach(b => b.classList.toggle('active', b.dataset.cat === cat));
 
     const isTrampo = cat === 'trampo';
-    $('categoryLabel').textContent = isTrampo ? 'Trampo' : 'Dia a dia';
-    $('pageTitle').textContent = isTrampo ? 'Caixa · Trampo' : 'Caixa · Dia a dia';
+    $('categoryLabel').textContent = isTrampo ? 'Gasto do dia a dia' : 'Dia a dia';
+    $('pageTitle').textContent = isTrampo ? 'Caixa · Gasto do dia a dia' : 'Caixa · Dia a dia';
     $('pageSub').textContent = isTrampo
       ? 'gasto e lucro do trabalho · dia · mês · ano'
       : 'gastos pessoais do dia a dia · dia · mês · ano';
