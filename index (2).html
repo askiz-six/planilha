@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Caixa — controle de gastos e lucro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f3f8f5;
+    --surface:#ffffff;
+    --ink:#101f18;
+    --muted:#6c7c73;
+    --green:#17a94d;
+    --green-deep:#0a6b34;
+    --green-soft:#e4f5ea;
+    --line: rgba(16,31,24,0.09);
+    --line-strong: rgba(16,31,24,0.15);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Plus Jakarta Sans', sans-serif;
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  button, input{ font-family:'Plus Jakarta Sans', sans-serif; transition:background-color .15s ease, border-color .15s ease, color .15s ease, opacity .15s ease, transform .12s ease, box-shadow .15s ease; }
+  .sr-only{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; }
+
+  .app{ max-width:460px; margin:0 auto; padding:18px 16px 70px; }
+
+  /* Topbar */
+  .topbar{ display:flex; align-items:center; gap:10px; margin-bottom:16px; }
+  .burger{
+    width:40px; height:40px; flex:0 0 auto;
+    background:var(--surface); border:1px solid var(--line-strong); border-radius:12px;
+    cursor:pointer; display:flex; flex-direction:column; justify-content:center; align-items:center; gap:4px;
+  }
+  .burger span{ display:block; width:16px; height:2px; border-radius:2px; background:var(--ink); }
+  .burger:hover{ border-color:var(--green); }
+  .brand{ display:flex; align-items:center; gap:8px; flex:1; min-width:0; }
+  .brand-name{ font-weight:800; font-size:15px; letter-spacing:-0.01em; }
+  .cat-pill{
+    font-size:11px; font-weight:600; color:var(--green-deep);
+    background:var(--green-soft); padding:4px 10px; border-radius:999px; white-space:nowrap;
+  }
+  .date-chip{ font-size:11px; color:var(--muted); white-space:nowrap; }
+
+  /* Hero */
+  .hero{
+    background:linear-gradient(135deg, var(--green-deep), var(--green));
+    border-radius:22px;
+    padding:26px 22px 22px;
+    color:#ffffff;
+    box-shadow:0 16px 30px -12px rgba(10,107,52,0.45);
+    margin-bottom:16px;
+  }
+  .hero-kicker{ font-size:12.5px; color:rgba(255,255,255,0.8); margin-bottom:6px; }
+  .hero-value{ font-size:38px; font-weight:800; letter-spacing:-0.01em; font-variant-numeric:tabular-nums; line-height:1.1; }
+  .hero-sub{ font-size:11.5px; color:rgba(255,255,255,0.72); margin-top:4px; }
+  .hero-chips{ display:flex; gap:10px; margin-top:18px; }
+  .chip{
+    flex:1; border-radius:14px; padding:12px 14px;
+    background:rgba(255,255,255,0.14);
+  }
+  .chip.expense{ background:rgba(0,0,0,0.22); }
+  .chip-label{ font-size:11px; color:rgba(255,255,255,0.75); margin-bottom:4px; }
+  .chip-value{ font-size:16px; font-weight:700; color:#ffffff; font-variant-numeric:tabular-nums; }
+  .hero-bar{ height:6px; border-radius:6px; background:rgba(0,0,0,0.22); margin-top:16px; overflow:hidden; }
+  .hero-bar-fill{ height:100%; background:#ffffff; border-radius:6px; }
+
+  /* Period card */
+  .period-card{
+    background:var(--surface); border:1px solid var(--line); border-radius:16px;
+    padding:12px; margin-bottom:16px;
+  }
+  nav.tabs{ display:flex; gap:4px; background:var(--bg); border-radius:11px; padding:4px; margin-bottom:10px; }
+  nav.tabs button{
+    flex:1; background:transparent; border:none; color:var(--muted);
+    font-size:13px; font-weight:600; padding:9px 4px; border-radius:8px; cursor:pointer;
+  }
+  nav.tabs button.active{ background:var(--ink); color:#ffffff; }
+  nav.tabs button:not(.active):hover{ color:var(--ink); }
+
+  .period-nav{ display:flex; align-items:center; justify-content:space-between; padding:2px 4px; }
+  .period-nav button{
+    background:transparent; border:1px solid var(--line-strong); color:var(--ink);
+    width:32px; height:32px; border-radius:10px; cursor:pointer; font-size:14px;
+  }
+  .period-nav button:hover{ border-color:var(--green); color:var(--green); }
+  .period-nav .label{ font-size:14px; font-weight:700; }
+  .period-nav .today-btn{
+    font-size:10.5px; font-weight:600; color:var(--green-deep); border:1px solid var(--green-soft);
+    background:var(--green-soft); cursor:pointer; padding:4px 9px; margin-left:8px; width:auto; height:auto; border-radius:999px;
+  }
+
+  /* Add card */
+  .add-card{
+    background:var(--surface); border:1px solid var(--line); border-radius:16px;
+    padding:18px; margin-bottom:16px;
+  }
+  .add-card h2{ font-size:14.5px; font-weight:700; margin:0 0 12px; }
+  .type-toggle{ display:flex; gap:8px; margin-bottom:14px; }
+  .type-toggle button{
+    flex:1; padding:11px; background:var(--bg); border:1px solid var(--line-strong); color:var(--muted);
+    font-size:13px; font-weight:600; cursor:pointer; border-radius:11px;
+    display:flex; align-items:center; justify-content:center; gap:6px;
+  }
+  .type-toggle button .ico{ font-weight:800; }
+  .type-toggle button.active.gasto{ background:var(--ink); border-color:var(--ink); color:#ffffff; }
+  .type-toggle button.active.lucro{ background:var(--green); border-color:var(--green); color:#ffffff; }
+
+  select{
+    background:var(--bg); border:1px solid var(--line-strong); color:var(--ink);
+    padding:11px 12px; font-size:13.5px; width:100%; border-radius:11px;
+    font-family:'Plus Jakarta Sans', sans-serif; appearance:none;
+    background-image:url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%236c7c73'%3E%3Cpath fill-rule='evenodd' d='M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z' clip-rule='evenodd'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:right 12px center; background-size:16px;
+    padding-right:34px;
+  }
+  select:focus{ outline:none; border-color:var(--green); box-shadow:0 0 0 3px var(--green-soft); }
+  .cat-field{ margin-bottom:10px; }
+
+  .filter-row{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:10px 4px 2px; border-top:1px solid var(--line); margin-top:10px;
+  }
+  .filter-row label{ font-size:11px; font-weight:600; color:var(--muted); white-space:nowrap; }
+  .filter-row select{ width:auto; flex:0 0 auto; padding:7px 30px 7px 12px; font-size:12.5px; border-radius:9px; }
+
+  .cat-tag{
+    font-size:10px; font-weight:600; color:var(--green-deep); background:var(--green-soft);
+    padding:2px 7px; border-radius:999px; flex:0 0 auto; white-space:nowrap;
+  }
+  .entry.gasto .cat-tag{ color:var(--ink); background:var(--bg); border:1px solid var(--line-strong); }
+
+  .form-row{ display:flex; gap:10px; margin-bottom:10px; }
+  .form-row.stack{ flex-direction:column; }
+  input[type=text], input[type=number], input[type=date]{
+    background:var(--bg); border:1px solid var(--line-strong); color:var(--ink);
+    padding:11px 12px; font-size:13.5px; width:100%; border-radius:11px;
+  }
+  input:focus{ outline:none; border-color:var(--green); box-shadow:0 0 0 3px var(--green-soft); }
+  label.small{ font-size:11px; color:var(--muted); font-weight:600; display:block; margin-bottom:5px; }
+  .field{ flex:1; }
+  .submit-btn{
+    width:100%; padding:13px; background:var(--green); color:#ffffff; border:none;
+    font-weight:700; font-size:13.5px; cursor:pointer; margin-top:6px; border-radius:12px;
+  }
+  .submit-btn:hover{ background:var(--green-deep); transform:translateY(-1px); }
+
+  /* Entries */
+  .entries-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; padding:0 2px; }
+  .entries-head h2{ font-size:13.5px; font-weight:700; color:var(--muted); margin:0; }
+  .view-toggle{ display:flex; gap:3px; background:var(--surface); border:1px solid var(--line); border-radius:9px; padding:3px; }
+  .view-toggle button{
+    background:transparent; border:none; color:var(--muted);
+    font-size:11px; font-weight:600; padding:5px 10px; cursor:pointer; border-radius:6px;
+  }
+  .view-toggle button.active{ background:var(--ink); color:#ffffff; }
+
+  .entry{
+    display:flex; align-items:center; gap:11px;
+    background:var(--surface); border:1px solid var(--line); border-radius:13px;
+    padding:12px 13px; margin-bottom:8px;
+  }
+  .entry .dot{
+    width:30px; height:30px; border-radius:9px; flex:0 0 auto;
+    display:flex; align-items:center; justify-content:center;
+    font-weight:800; font-size:14px; color:#ffffff;
+  }
+  .entry.gasto .dot{ background:var(--ink); }
+  .entry.gasto .dot::before{ content:'\2212'; }
+  .entry.lucro .dot{ background:var(--green); }
+  .entry.lucro .dot::before{ content:'+'; }
+  .entry .desc{ flex:1; font-size:13.5px; font-weight:600; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .entry .date{ font-size:11px; color:var(--muted); flex:0 0 auto; }
+  .entry .val{ font-size:13.5px; font-weight:700; flex:0 0 auto; min-width:84px; text-align:right; font-variant-numeric:tabular-nums; }
+  .entry.gasto .val{ color:var(--ink); }
+  .entry.lucro .val{ color:var(--green-deep); }
+  .entry .del{
+    background:none; border:none; color:var(--muted); cursor:pointer; font-size:16px; flex:0 0 auto; padding:0 0 0 2px;
+  }
+  .entry .del:hover{ color:var(--ink); }
+  .empty{
+    color:var(--muted); font-size:13px; padding:28px 0; text-align:center;
+    background:var(--surface); border:1px dashed var(--line-strong); border-radius:13px;
+  }
+
+  /* Planilha */
+  .sheet-wrap{ overflow-x:auto; background:var(--surface); border:1px solid var(--line); border-radius:14px; }
+  table.sheet{ width:100%; border-collapse:collapse; font-size:12.5px; }
+  table.sheet th{
+    text-align:left; font-weight:700; color:var(--green-deep); font-size:10.5px;
+    padding:11px 12px; border-bottom:1px solid var(--line-strong); background:var(--green-soft);
+  }
+  table.sheet th:first-child{ border-top-left-radius:14px; }
+  table.sheet th:last-child{ border-top-right-radius:14px; }
+  table.sheet td{ padding:10px 12px; border-bottom:1px solid var(--line); white-space:nowrap; }
+  table.sheet td.desc-cell{ white-space:normal; font-weight:600; }
+  table.sheet td.cat-cell{ color:var(--muted); font-size:11.5px; }
+  table.sheet tr:hover td{ background:var(--green-soft); }
+  table.sheet td.val{ text-align:right; font-weight:700; font-variant-numeric:tabular-nums; }
+  table.sheet tr.gasto td.val{ color:var(--ink); }
+  table.sheet tr.lucro td.val{ color:var(--green-deep); }
+  table.sheet tfoot td{ border-top:1px solid var(--line-strong); border-bottom:none; font-weight:700; background:var(--bg); }
+  table.sheet tfoot td.val.pos{ color:var(--green-deep); }
+  table.sheet tfoot td.val.neg{ color:var(--ink); }
+  table.sheet .del-cell{ text-align:center; }
+  table.sheet .del{ background:none; border:none; color:var(--muted); cursor:pointer; font-size:14px; }
+  table.sheet .del:hover{ color:var(--ink); }
+
+  /* Planilha em grade (estilo Excel: dia/mês x total) */
+  .grid-sheet-wrap{ overflow-x:auto; background:var(--surface); border:1px solid var(--line); border-radius:14px; padding-bottom:2px; }
+  .grid-title{ text-align:center; font-weight:800; font-size:13.5px; padding:16px 10px 12px; letter-spacing:0.01em; }
+  table.grid-sheet{ width:100%; border-collapse:collapse; font-size:11.5px; }
+  table.grid-sheet th, table.grid-sheet td{
+    border:1px solid var(--line-strong); padding:7px 8px; text-align:center; white-space:nowrap;
+  }
+  table.grid-sheet th{ background:var(--green-soft); color:var(--green-deep); font-weight:700; font-size:10.5px; }
+  table.grid-sheet td.day-cell{ font-weight:700; background:var(--bg); }
+  table.grid-sheet td.month-cell{ text-align:left; padding-left:12px; }
+  table.grid-sheet td.val-cell{ color:var(--ink); font-variant-numeric:tabular-nums; }
+  table.grid-sheet td.total-cell{ font-weight:800; background:var(--bg); font-variant-numeric:tabular-nums; }
+  table.grid-sheet tbody tr:hover td{ background:var(--green-soft); }
+  table.grid-sheet tfoot td{
+    font-weight:800; background:var(--ink); color:#ffffff; border-color:var(--ink);
+  }
+  table.grid-sheet tfoot td.total-cell{ background:var(--ink); color:#ffffff; }
+
+  footer{
+    margin-top:24px; font-size:10.5px; color:var(--muted); line-height:1.7;
+    background:var(--surface); border:1px solid var(--line); border-radius:13px; padding:14px 16px;
+  }
+
+  /* Menu drawer */
+  .menu-overlay{ position:fixed; inset:0; background:rgba(10,20,15,0.45); opacity:0; pointer-events:none; transition:opacity .2s; z-index:40; }
+  .menu-overlay.open{ opacity:1; pointer-events:auto; }
+  .menu-panel{
+    position:fixed; top:0; left:0; bottom:0; width:270px; max-width:82vw;
+    background:var(--surface); border-radius:0 20px 20px 0;
+    transform:translateX(-100%); transition:transform .22s ease; z-index:41; padding:22px;
+  }
+  .menu-panel.open{ transform:translateX(0); }
+  .menu-panel h2{ font-size:17px; font-weight:800; margin:0 0 4px; }
+  .menu-panel .menu-sub{ font-size:11px; color:var(--muted); margin-bottom:20px; }
+  .menu-item{
+    display:flex; align-items:center; gap:12px;
+    width:100%; text-align:left; background:var(--bg); border:1px solid var(--line);
+    color:var(--ink); padding:13px; margin-bottom:10px; cursor:pointer; border-radius:14px;
+  }
+  .menu-item .ico{
+    width:36px; height:36px; border-radius:10px; flex:0 0 auto;
+    display:flex; align-items:center; justify-content:center; font-weight:800; font-size:15px; color:#fff;
+    background:var(--ink);
+  }
+  .menu-item[data-cat="diadia"] .ico{ background:var(--green); }
+  .menu-item .t{ font-size:13.5px; font-weight:700; margin-bottom:2px; }
+  .menu-item .d{ font-size:10.5px; color:var(--muted); }
+  .menu-item.active{ border-color:var(--green); background:var(--green-soft); }
+  .menu-item.active .t{ color:var(--green-deep); }
+  .menu-close{
+    position:absolute; top:18px; right:18px; width:30px; height:30px; border-radius:9px;
+    background:var(--bg); border:none; color:var(--muted); font-size:16px; cursor:pointer;
+  }
+  .menu-close:hover{ color:var(--ink); }
+
+  @media (max-width:380px){
+    .hero-value{ font-size:32px; }
+    .entry .date{ display:none; }
+    table.sheet{ font-size:11.5px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="menu-overlay" id="menuOverlay"></div>
+<div class="menu-panel" id="menuPanel">
+  <button class="menu-close" id="menuClose">×</button>
+  <h2>Menu</h2>
+  <div class="menu-sub">escolha o que quer controlar</div>
+  <button class="menu-item active" id="menuTrampo" data-cat="trampo">
+    <span class="ico">T</span>
+    <span>
+      <div class="t">Trampo</div>
+      <div class="d">gasto e lucro do trabalho</div>
+    </span>
+  </button>
+  <button class="menu-item" id="menuDiaadia" data-cat="diadia">
+    <span class="ico">D</span>
+    <span>
+      <div class="t">Dia a dia</div>
+      <div class="d">gastos pessoais</div>
+    </span>
+  </button>
+</div>
+
+<div class="app">
+
+  <div class="topbar">
+    <button class="burger" id="burgerBtn" aria-label="menu">
+      <span></span><span></span><span></span>
+    </button>
+    <div class="brand">
+      <span class="brand-name">Caixa</span>
+      <span class="cat-pill" id="categoryLabel">Trampo</span>
+    </div>
+    <div class="date-chip" id="todayLabel"></div>
+  </div>
+  <h1 class="sr-only" id="pageTitle">Caixa</h1>
+
+  <section class="hero" id="heroCard">
+    <div class="hero-kicker" id="pageSub">gasto e lucro do trabalho</div>
+    <div id="statBalance">
+      <div class="hero-value" id="totalSaldo">R$ 0,00</div>
+      <div class="hero-sub">saldo neste período</div>
+    </div>
+    <div class="hero-chips" id="statsRow">
+      <div class="chip expense">
+        <div class="chip-label">Gasto</div>
+        <div class="chip-value" id="totalGasto">R$ 0,00</div>
+      </div>
+      <div class="chip profit" id="statProfit">
+        <div class="chip-label">Lucro</div>
+        <div class="chip-value" id="totalLucro">R$ 0,00</div>
+      </div>
+    </div>
+    <div class="hero-bar" id="statBar"><div class="hero-bar-fill" id="barFill" style="width:0%"></div></div>
+  </section>
+
+  <div class="period-card">
+    <nav class="tabs" id="tabs">
+      <button data-mode="dia" class="active">Dia</button>
+      <button data-mode="mes">Mês</button>
+      <button data-mode="ano">Ano</button>
+    </nav>
+    <div class="period-nav">
+      <button id="prevBtn">‹</button>
+      <div>
+        <span class="label" id="periodLabel"></span>
+        <button class="today-btn" id="todayBtn">hoje</button>
+      </div>
+      <button id="nextBtn">›</button>
+    </div>
+    <div class="filter-row">
+      <label for="categoryFilter">categoria</label>
+      <select id="categoryFilter">
+        <option value="todas">Tudo</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="add-card">
+    <h2>Novo lançamento</h2>
+    <div class="type-toggle" id="typeToggle">
+      <button data-type="gasto" class="active gasto"><span class="ico">−</span>Gasto</button>
+      <button data-type="lucro" class="lucro"><span class="ico">+</span>Lucro</button>
+    </div>
+    <div class="field cat-field" id="catFieldWrap">
+      <label class="small">categoria do gasto</label>
+      <select id="categoriaInput">
+        <option value="">selecione...</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <div class="field">
+        <label class="small">valor (R$)</label>
+        <input type="number" id="valorInput" step="0.01" min="0" placeholder="0,00">
+      </div>
+      <div class="field">
+        <label class="small">data</label>
+        <input type="date" id="dataInput">
+      </div>
+    </div>
+    <div class="form-row stack">
+      <div class="field">
+        <label class="small">descrição (o que exatamente foi)</label>
+        <input type="text" id="descInput" placeholder="ex: corte na barbearia do Zé...">
+      </div>
+    </div>
+    <button class="submit-btn" id="addBtn">Adicionar lançamento</button>
+  </div>
+
+  <div class="entries">
+    <div class="entries-head">
+      <h2 id="entriesTitle">lançamentos</h2>
+      <div class="view-toggle" id="viewToggle">
+        <button data-view="lista" class="active">lista</button>
+        <button data-view="planilha">planilha</button>
+      </div>
+    </div>
+    <div id="entriesList"></div>
+  </div>
+
+  <footer>
+    os dados ficam salvos neste navegador (localStorage). se você abrir o site no computador e no celular, cada um guarda seus próprios lançamentos — eles não sincronizam automaticamente entre aparelhos.
+  </footer>
+
+</div>
+
+<script>
+(function(){
+  const STORAGE_KEY = 'caixa_entries_v2';
+  const CAT_KEY = 'caixa_category_v1';
+  const GASTO_CATEGORIAS = ['Comida', 'Roupa', 'Corte de cabelo', 'Namorada(o)', 'Transporte', 'Casa', 'Saúde', 'Lazer', 'Outros'];
+
+  let entries = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+  // migração: lançamentos antigos (sem categoria) viram "trampo"
+  entries = entries.map(en => en.cat ? en : { ...en, cat: 'trampo' });
+
+  let category = localStorage.getItem(CAT_KEY) || 'trampo';
+  let mode = 'dia';
+  let view = 'lista';
+  let currentType = 'gasto';
+  let refDate = new Date();
+
+  const $ = (id) => document.getElementById(id);
+
+  function populateCategorySelects(){
+    const sel = $('categoriaInput');
+    GASTO_CATEGORIAS.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c; opt.textContent = c;
+      sel.appendChild(opt);
+    });
+    const filter = $('categoryFilter');
+    GASTO_CATEGORIAS.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c; opt.textContent = c;
+      filter.appendChild(opt);
+    });
+  }
+  populateCategorySelects();
+  const fmtMoney = (n) => 'R$ ' + n.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
+  const pad = (n) => String(n).padStart(2,'0');
+  const toISODate = (d) => d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+
+  function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(entries)); }
+  function saveCategory(){ localStorage.setItem(CAT_KEY, category); }
+
+  function setToday(){
+    $('dataInput').value = toISODate(new Date());
+    $('todayLabel').textContent = new Date().toLocaleDateString('pt-BR', {weekday:'short', day:'2-digit', month:'short'});
+  }
+
+  // ---- Menu (hambúrguer) ----
+  function openMenu(){ $('menuOverlay').classList.add('open'); $('menuPanel').classList.add('open'); }
+  function closeMenu(){ $('menuOverlay').classList.remove('open'); $('menuPanel').classList.remove('open'); }
+  $('burgerBtn').addEventListener('click', openMenu);
+  $('menuClose').addEventListener('click', closeMenu);
+  $('menuOverlay').addEventListener('click', closeMenu);
+
+  function updateCategoryFieldVisibility(){
+    $('catFieldWrap').style.display = currentType === 'gasto' ? 'block' : 'none';
+  }
+
+  function setCategory(cat){
+    category = cat;
+    saveCategory();
+    [$('menuTrampo'), $('menuDiaadia')].forEach(b => b.classList.toggle('active', b.dataset.cat === cat));
+
+    const isTrampo = cat === 'trampo';
+    $('categoryLabel').textContent = isTrampo ? 'Trampo' : 'Dia a dia';
+    $('pageTitle').textContent = isTrampo ? 'Caixa · Trampo' : 'Caixa · Dia a dia';
+    $('pageSub').textContent = isTrampo
+      ? 'gasto e lucro do trabalho · dia · mês · ano'
+      : 'gastos pessoais do dia a dia · dia · mês · ano';
+
+    // no "dia a dia" só existe gasto: esconde o alternador gasto/lucro e trava o tipo
+    $('typeToggle').style.display = isTrampo ? 'flex' : 'none';
+    currentType = isTrampo ? currentType : 'gasto';
+    updateCategoryFieldVisibility();
+
+    // esconde lucro/saldo/barra quando for "dia a dia" (só gasto faz sentido)
+    $('statProfit').style.display = isTrampo ? 'block' : 'none';
+    $('statBalance').style.display = isTrampo ? 'block' : 'none';
+    $('statBar').style.display = isTrampo ? 'block' : 'none';
+
+    $('categoryFilter').value = 'todas';
+    render();
+  }
+
+  $('menuTrampo').addEventListener('click', () => { setCategory('trampo'); closeMenu(); });
+  $('menuDiaadia').addEventListener('click', () => { setCategory('diadia'); closeMenu(); });
+
+  // ---- Tabs (período) ----
+  $('tabs').addEventListener('click', (e) => {
+    const btn = e.target.closest('button');
+    if(!btn) return;
+    mode = btn.dataset.mode;
+    [...$('tabs').children].forEach(b => b.classList.toggle('active', b === btn));
+    render();
+  });
+
+  // ---- View toggle ----
+  $('viewToggle').addEventListener('click', (e) => {
+    const btn = e.target.closest('button');
+    if(!btn) return;
+    view = btn.dataset.view;
+    [...$('viewToggle').children].forEach(b => b.classList.toggle('active', b === btn));
+    render();
+  });
+
+  // ---- Type toggle (só aparece no Trampo) ----
+  $('typeToggle').addEventListener('click', (e) => {
+    const btn = e.target.closest('button');
+    if(!btn) return;
+    currentType = btn.dataset.type;
+    [...$('typeToggle').children].forEach(b => b.classList.toggle('active', b === btn));
+    updateCategoryFieldVisibility();
+  });
+
+  // ---- Filtro de categoria ----
+  $('categoryFilter').addEventListener('change', render);
+
+  // ---- Period navigation ----
+  $('prevBtn').addEventListener('click', () => { shiftPeriod(-1); render(); });
+  $('nextBtn').addEventListener('click', () => { shiftPeriod(1); render(); });
+  $('todayBtn').addEventListener('click', () => { refDate = new Date(); render(); });
+
+  function shiftPeriod(dir){
+    if(mode === 'dia') refDate.setDate(refDate.getDate() + dir);
+    else if(mode === 'mes') refDate.setMonth(refDate.getMonth() + dir);
+    else refDate.setFullYear(refDate.getFullYear() + dir);
+  }
+
+  function periodLabelText(){
+    if(mode === 'dia'){
+      return refDate.toLocaleDateString('pt-BR', {day:'2-digit', month:'long', year:'numeric'});
+    } else if(mode === 'mes'){
+      const s = refDate.toLocaleDateString('pt-BR', {month:'long', year:'numeric'});
+      return s.charAt(0).toUpperCase() + s.slice(1);
+    } else {
+      return String(refDate.getFullYear());
+    }
+  }
+
+  function matchesPeriod(entry){
+    const d = new Date(entry.date + 'T00:00:00');
+    if(mode === 'dia'){
+      return d.toDateString() === refDate.toDateString();
+    } else if(mode === 'mes'){
+      return d.getFullYear() === refDate.getFullYear() && d.getMonth() === refDate.getMonth();
+    } else {
+      return d.getFullYear() === refDate.getFullYear();
+    }
+  }
+
+  function matchesCategoryFilter(entry){
+    const val = $('categoryFilter').value;
+    if(val === 'todas') return true;
+    return entry.category === val;
+  }
+
+  // ---- Add entry ----
+  $('addBtn').addEventListener('click', () => {
+    const isGasto = (category === 'diadia') ? true : (currentType === 'gasto');
+    const valor = parseFloat($('valorInput').value);
+    const data = $('dataInput').value;
+    const desc = $('descInput').value.trim();
+    const categoria = $('categoriaInput').value;
+
+    if(!valor || valor <= 0 || !data){
+      $('valorInput').focus();
+      return;
+    }
+    if(isGasto && !categoria){
+      $('categoriaInput').focus();
+      return;
+    }
+    entries.push({
+      id: Date.now() + '-' + Math.random().toString(36).slice(2,7),
+      cat: category,
+      type: isGasto ? 'gasto' : 'lucro',
+      category: isGasto ? categoria : null,
+      value: valor,
+      desc: desc || (isGasto ? categoria : 'lucro'),
+      date: data
+    });
+    save();
+    $('valorInput').value = '';
+    $('descInput').value = '';
+    $('categoriaInput').value = '';
+    $('valorInput').focus();
+    render();
+  });
+
+  // ---- Delete entry ----
+  $('entriesList').addEventListener('click', (e) => {
+    const btn = e.target.closest('.del');
+    if(!btn) return;
+    entries = entries.filter(en => en.id !== btn.dataset.id);
+    save();
+    render();
+  });
+
+  const MESES_PT = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+  function buildDayGrid(gastoEntries){
+    const year = refDate.getFullYear();
+    const monthIdx = refDate.getMonth();
+    const numDays = new Date(year, monthIdx + 1, 0).getDate();
+
+    const byDay = {};
+    gastoEntries.forEach(en => {
+      const d = new Date(en.date + 'T00:00:00');
+      const day = d.getDate();
+      (byDay[day] = byDay[day] || []).push(en);
+    });
+
+    let maxCols = 1;
+    Object.values(byDay).forEach(arr => { if(arr.length > maxCols) maxCols = arr.length; });
+
+    let grandTotal = 0;
+    const rowsHtml = [];
+    for(let day = 1; day <= numDays; day++){
+      const arr = byDay[day] || [];
+      const dayTotal = arr.reduce((s,en) => s + en.value, 0);
+      grandTotal += dayTotal;
+      const cells = [];
+      for(let c = 0; c < maxCols; c++){
+        cells.push(arr[c] ? `<td class="val-cell" title="${escapeHtml(arr[c].category || '')} ${escapeHtml(arr[c].desc || '')}">${fmtMoney(arr[c].value)}</td>` : '<td></td>');
+      }
+      rowsHtml.push(`<tr><td class="day-cell">${day}</td>${cells.join('')}<td class="total-cell">${fmtMoney(dayTotal)}</td></tr>`);
+    }
+
+    const headCells = Array.from({length:maxCols}, () => '<th></th>').join('');
+    const monthLabel = MESES_PT[monthIdx].toUpperCase() + ' DE ' + year;
+
+    return `
+      <div class="grid-sheet-wrap">
+        <div class="grid-title">GASTO DE ${monthLabel}</div>
+        <table class="grid-sheet">
+          <thead><tr><th>Dia</th>${headCells}<th>Total</th></tr></thead>
+          <tbody>${rowsHtml.join('')}</tbody>
+          <tfoot><tr><td colspan="${maxCols + 1}">TOTAL DE GASTO</td><td class="total-cell">${fmtMoney(grandTotal)}</td></tr></tfoot>
+        </table>
+      </div>
+    `;
+  }
+
+  function buildMonthGrid(gastoEntries){
+    const year = refDate.getFullYear();
+    const byMonth = new Array(12).fill(0);
+    gastoEntries.forEach(en => {
+      const d = new Date(en.date + 'T00:00:00');
+      byMonth[d.getMonth()] += en.value;
+    });
+    const grandTotal = byMonth.reduce((s,v) => s + v, 0);
+
+    const rowsHtml = MESES_PT.map((m, i) => `
+      <tr><td class="day-cell month-cell">${m}</td><td class="total-cell">${fmtMoney(byMonth[i])}</td></tr>
+    `).join('');
+
+    return `
+      <div class="grid-sheet-wrap">
+        <div class="grid-title">GASTO DE ${year}</div>
+        <table class="grid-sheet">
+          <thead><tr><th>Mês</th><th>Total</th></tr></thead>
+          <tbody>${rowsHtml}</tbody>
+          <tfoot><tr><td>TOTAL DE GASTO</td><td class="total-cell">${fmtMoney(grandTotal)}</td></tr></tfoot>
+        </table>
+      </div>
+    `;
+  }
+
+  // ---- Render ----
+  function render(){
+    $('periodLabel').textContent = periodLabelText();
+
+    const filtered = entries
+      .filter(en => en.cat === category)
+      .filter(matchesPeriod)
+      .filter(matchesCategoryFilter)
+      .sort((a,b) => b.date.localeCompare(a.date));
+
+    const gasto = filtered.filter(e => e.type === 'gasto').reduce((s,e) => s + e.value, 0);
+    const lucro = filtered.filter(e => e.type === 'lucro').reduce((s,e) => s + e.value, 0);
+    const saldo = lucro - gasto;
+
+    $('totalGasto').textContent = fmtMoney(gasto);
+    $('totalLucro').textContent = fmtMoney(lucro);
+    const saldoEl = $('totalSaldo');
+    saldoEl.textContent = (saldo >= 0 ? '+ ' : '- ') + fmtMoney(Math.abs(saldo));
+    saldoEl.classList.toggle('pos', saldo >= 0);
+    saldoEl.classList.toggle('neg', saldo < 0);
+
+    const total = gasto + lucro;
+    const pct = total > 0 ? (lucro/total*100) : 0;
+    $('barFill').style.width = pct + '%';
+
+    $('entriesTitle').textContent = 'lançamentos · ' + filtered.length;
+
+    const list = $('entriesList');
+
+    // ---- Planilha em grade (estilo Excel), tipo "GASTO DO MÊS" / "GASTO DO ANO" ----
+    if(view === 'planilha' && (mode === 'mes' || mode === 'ano')){
+      const gastoEntries = filtered.filter(e => e.type === 'gasto');
+      list.innerHTML = mode === 'mes' ? buildDayGrid(gastoEntries) : buildMonthGrid(gastoEntries);
+      return;
+    }
+
+    if(filtered.length === 0){
+      list.innerHTML = '<div class="empty">nenhum lançamento neste período</div>';
+      return;
+    }
+
+    if(view === 'planilha'){
+      list.innerHTML = `
+        <div class="sheet-wrap">
+        <table class="sheet">
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Tipo</th>
+              <th>Categoria</th>
+              <th>Descrição</th>
+              <th style="text-align:right;">Valor</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            ${filtered.map(en => `
+              <tr class="${en.type}">
+                <td>${new Date(en.date+'T00:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit'})}</td>
+                <td>${en.type === 'gasto' ? 'Gasto' : 'Lucro'}</td>
+                <td class="cat-cell">${en.category ? escapeHtml(en.category) : '—'}</td>
+                <td class="desc-cell">${escapeHtml(en.desc)}</td>
+                <td class="val">${en.type === 'gasto' ? '-' : '+'} ${fmtMoney(en.value)}</td>
+                <td class="del-cell"><button class="del" data-id="${en.id}">×</button></td>
+              </tr>
+            `).join('')}
+          </tbody>
+          <tfoot>
+            <tr>
+              <td colspan="4">Total gasto</td>
+              <td class="val" colspan="2">${fmtMoney(gasto)}</td>
+            </tr>
+            ${category === 'trampo' ? `
+            <tr>
+              <td colspan="4">Total lucro</td>
+              <td class="val" colspan="2">${fmtMoney(lucro)}</td>
+            </tr>
+            <tr>
+              <td colspan="4">Saldo</td>
+              <td class="val ${saldo >= 0 ? 'pos' : 'neg'}" colspan="2">${(saldo>=0?'+ ':'- ')}${fmtMoney(Math.abs(saldo))}</td>
+            </tr>` : ''}
+          </tfoot>
+        </table>
+        </div>
+      `;
+      return;
+    }
+
+    list.innerHTML = filtered.map(en => `
+      <div class="entry ${en.type}">
+        <div class="dot"></div>
+        <div class="desc">${escapeHtml(en.desc)}</div>
+        ${en.category ? `<div class="cat-tag">${escapeHtml(en.category)}</div>` : ''}
+        <div class="date">${new Date(en.date+'T00:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})}</div>
+        <div class="val">${en.type === 'gasto' ? '-' : '+'} ${fmtMoney(en.value)}</div>
+        <button class="del" data-id="${en.id}">×</button>
+      </div>
+    `).join('');
+  }
+
+  function escapeHtml(str){
+    const d = document.createElement('div');
+    d.textContent = str;
+    return d.innerHTML;
+  }
+
+  setToday();
+  setCategory(category);
+})();
+</script>
+</body>
+</html>
