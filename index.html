@@ -437,6 +437,13 @@
       <div class="d">criar e gerenciar seus webhooks</div>
     </span>
   </button>
+  <button class="menu-item" id="menuSettings">
+    <span class="ico" style="background:var(--muted);">⚙</span>
+    <span>
+      <div class="t">Configurações</div>
+      <div class="d">usuário, senha, e-mail, excluir conta</div>
+    </span>
+  </button>
   <button class="menu-item" id="logoutBtn">
     <span class="ico" style="background:var(--muted);">⎋</span>
     <span>
@@ -575,6 +582,65 @@
         <h2>webhooks criados</h2>
       </div>
       <div id="webhooksList"><div class="empty">carregando...</div></div>
+    </div>
+  </div>
+
+  <div id="settingsPanel" style="display:none;">
+    <div class="add-card">
+      <h2>Nome de usuário</h2>
+      <div class="form-row stack">
+        <div class="field">
+          <label class="small">novo nome de usuário</label>
+          <input type="text" id="newUsernameInput" placeholder="novo usuário" autocomplete="username">
+        </div>
+      </div>
+      <button class="submit-btn" id="saveUsernameBtn" style="background:var(--ink);">salvar novo usuário</button>
+      <div class="auth-msg" id="usernameMsg"></div>
+    </div>
+
+    <div class="add-card">
+      <h2>E-mail</h2>
+      <div class="form-row stack">
+        <div class="field">
+          <label class="small">novo e-mail (gmail)</label>
+          <input type="email" id="newEmailInput" placeholder="novo@gmail.com" autocomplete="email">
+        </div>
+      </div>
+      <button class="submit-btn" id="saveEmailBtn" style="background:var(--ink);">salvar novo e-mail</button>
+      <div class="auth-msg" id="emailMsg"></div>
+    </div>
+
+    <div class="add-card">
+      <h2>Senha</h2>
+      <div class="form-row stack">
+        <div class="field">
+          <label class="small">senha atual</label>
+          <input type="password" id="currentPasswordInput" autocomplete="current-password">
+        </div>
+      </div>
+      <div class="form-row stack">
+        <div class="field">
+          <label class="small">nova senha</label>
+          <input type="password" id="newPasswordInput" placeholder="mínimo 4 caracteres" autocomplete="new-password">
+        </div>
+      </div>
+      <button class="submit-btn" id="savePasswordBtn" style="background:var(--ink);">salvar nova senha</button>
+      <div class="auth-msg" id="passwordMsg"></div>
+    </div>
+
+    <div class="add-card" style="border-color:#c96a4c;">
+      <h2 style="color:#c96a4c;">Excluir conta</h2>
+      <p style="font-size:12px;color:var(--muted);margin:0 0 14px;line-height:1.6;">
+        isso apaga sua conta, seus lançamentos e seus webhooks pra sempre. não tem como desfazer.
+      </p>
+      <div class="form-row stack">
+        <div class="field">
+          <label class="small">confirme sua senha pra excluir</label>
+          <input type="password" id="deletePasswordInput" autocomplete="current-password">
+        </div>
+      </div>
+      <button class="submit-btn" id="deleteAccountBtn" style="background:#c96a4c;">excluir minha conta</button>
+      <div class="auth-msg" id="deleteMsg"></div>
     </div>
   </div>
 
@@ -795,10 +861,9 @@
   async function setCategory(cat){
     category = cat;
     saveCategory();
+    hideAllPanels();
     [$('menuTrampo'), $('menuVendas')].forEach(b => b.classList.toggle('active', b.dataset.cat === cat));
-    $('menuWebhooks').classList.remove('active');
     $('financeView').style.display = 'block';
-    $('webhooksPanel').style.display = 'none';
 
     const isTrampo = cat === 'trampo';
     const isVendas = cat === 'vendas';
@@ -838,10 +903,18 @@
   $('menuVendas').addEventListener('click', () => { setCategory('vendas'); closeMenu(); });
 
   // ---- Painel de gerenciamento de Webhooks ----
-  async function showWebhooksPanel(){
-    [$('menuTrampo'), $('menuVendas')].forEach(b => b.classList.remove('active'));
-    $('menuWebhooks').classList.add('active');
+  function hideAllPanels(){
     $('financeView').style.display = 'none';
+    $('webhooksPanel').style.display = 'none';
+    $('settingsPanel').style.display = 'none';
+    [$('menuTrampo'), $('menuVendas')].forEach(b => b.classList.remove('active'));
+    $('menuWebhooks').classList.remove('active');
+    $('menuSettings').classList.remove('active');
+  }
+
+  async function showWebhooksPanel(){
+    hideAllPanels();
+    $('menuWebhooks').classList.add('active');
     $('webhooksPanel').style.display = 'block';
     $('categoryLabel').textContent = 'Webhook';
     $('pageTitle').textContent = 'Caixa · Webhook';
@@ -850,6 +923,143 @@
 
   $('menuWebhooks').addEventListener('click', () => { showWebhooksPanel(); closeMenu(); });
   $('goToWebhooksBtn').addEventListener('click', () => { showWebhooksPanel(); });
+
+  function showSettingsPanel(){
+    hideAllPanels();
+    $('menuSettings').classList.add('active');
+    $('settingsPanel').style.display = 'block';
+    $('categoryLabel').textContent = 'Configurações';
+    $('pageTitle').textContent = 'Caixa · Configurações';
+    const users = getUsers();
+    const me = users[currentUser] || {};
+    $('newUsernameInput').value = currentUser;
+    $('newEmailInput').value = me.email || '';
+    $('currentPasswordInput').value = '';
+    $('newPasswordInput').value = '';
+    $('deletePasswordInput').value = '';
+    ['usernameMsg','emailMsg','passwordMsg','deleteMsg'].forEach(id => { $(id).textContent = ''; $(id).className = 'auth-msg'; });
+  }
+
+  $('menuSettings').addEventListener('click', () => { showSettingsPanel(); closeMenu(); });
+
+  // ---- Trocar nome de usuário ----
+  $('saveUsernameBtn').addEventListener('click', async () => {
+    const newUsername = $('newUsernameInput').value.trim().toLowerCase();
+    const msg = $('usernameMsg');
+    msg.className = 'auth-msg';
+    if(!newUsername){ msg.textContent = 'digite um nome de usuário.'; return; }
+    if(newUsername === currentUser){ msg.textContent = 'esse já é seu usuário atual.'; return; }
+    const users = getUsers();
+    if(users[newUsername]){ msg.textContent = 'esse nome de usuário já está em uso.'; return; }
+
+    $('saveUsernameBtn').disabled = true;
+    const oldUsername = currentUser;
+    const userData = users[oldUsername];
+    delete users[oldUsername];
+    users[newUsername] = userData;
+    saveUsers(users);
+
+    const oldEntriesKey = entriesKeyFor(oldUsername);
+    const entriesData = localStorage.getItem(oldEntriesKey);
+    if(entriesData !== null){
+      localStorage.setItem(entriesKeyFor(newUsername), entriesData);
+      localStorage.removeItem(oldEntriesKey);
+    }
+
+    try{
+      await fetch('/api/account', {
+        method:'POST',
+        headers:{ 'Content-Type':'application/json' },
+        body: JSON.stringify({ action:'rename', oldUser: oldUsername, newUser: newUsername })
+      });
+    } catch(e){ /* segue mesmo se a API ainda não estiver configurada */ }
+
+    currentUser = newUsername;
+    localStorage.setItem(SESSION_KEY, newUsername);
+    msg.classList.add('ok');
+    msg.textContent = 'usuário atualizado!';
+    $('saveUsernameBtn').disabled = false;
+  });
+
+  // ---- Trocar e-mail ----
+  $('saveEmailBtn').addEventListener('click', () => {
+    const newEmail = $('newEmailInput').value.trim().toLowerCase();
+    const msg = $('emailMsg');
+    msg.className = 'auth-msg';
+    if(!newEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)){
+      msg.textContent = 'digite um e-mail válido.';
+      return;
+    }
+    const users = getUsers();
+    const taken = Object.keys(users).some(u => u !== currentUser && users[u].email === newEmail);
+    if(taken){ msg.textContent = 'esse e-mail já está sendo usado em outra conta.'; return; }
+
+    users[currentUser].email = newEmail;
+    saveUsers(users);
+    $('menuUserEmail').textContent = newEmail;
+    msg.classList.add('ok');
+    msg.textContent = 'e-mail atualizado!';
+  });
+
+  // ---- Trocar senha ----
+  $('savePasswordBtn').addEventListener('click', async () => {
+    const current = $('currentPasswordInput').value;
+    const novaSenha = $('newPasswordInput').value;
+    const msg = $('passwordMsg');
+    msg.className = 'auth-msg';
+    if(!current){ msg.textContent = 'digite sua senha atual.'; return; }
+    if(!novaSenha || novaSenha.length < 4){ msg.textContent = 'a nova senha precisa ter pelo menos 4 caracteres.'; return; }
+
+    $('savePasswordBtn').disabled = true;
+    const users = getUsers();
+    const me = users[currentUser];
+    const currentHash = await hashPassword(current, me.salt);
+    if(currentHash !== me.hash){
+      msg.textContent = 'senha atual incorreta.';
+      $('savePasswordBtn').disabled = false;
+      return;
+    }
+    const newSalt = randomSalt();
+    const newHash = await hashPassword(novaSenha, newSalt);
+    users[currentUser].salt = newSalt;
+    users[currentUser].hash = newHash;
+    saveUsers(users);
+    $('currentPasswordInput').value = '';
+    $('newPasswordInput').value = '';
+    msg.classList.add('ok');
+    msg.textContent = 'senha atualizada!';
+    $('savePasswordBtn').disabled = false;
+  });
+
+  // ---- Excluir conta ----
+  $('deleteAccountBtn').addEventListener('click', async () => {
+    const password = $('deletePasswordInput').value;
+    const msg = $('deleteMsg');
+    msg.className = 'auth-msg';
+    if(!password){ msg.textContent = 'digite sua senha pra confirmar.'; return; }
+
+    const users = getUsers();
+    const me = users[currentUser];
+    const hash = await hashPassword(password, me.salt);
+    if(hash !== me.hash){ msg.textContent = 'senha incorreta.'; return; }
+
+    if(!confirm('tem certeza? isso apaga sua conta, seus lançamentos e seus webhooks pra sempre.')) return;
+
+    $('deleteAccountBtn').disabled = true;
+    const username = currentUser;
+    delete users[username];
+    saveUsers(users);
+    localStorage.removeItem(entriesKeyFor(username));
+    localStorage.removeItem(SESSION_KEY);
+
+    try{
+      await fetch('/api/account?user=' + encodeURIComponent(username), { method:'DELETE' });
+    } catch(e){ /* segue mesmo se a API ainda não estiver configurada */ }
+
+    currentUser = null;
+    entries = [];
+    showAuthScreen();
+  });
 
   async function loadWebhooksList(){
     const list = $('webhooksList');
