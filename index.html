@@ -398,8 +398,8 @@
   <button class="menu-item active" id="menuTrampo" data-cat="trampo">
     <span class="ico">T</span>
     <span>
-      <div class="t">Gasto do dia a dia</div>
-      <div class="d">gasto e lucro do dia a dia</div>
+      <div class="t">Gasto e lucro do dia · mês · ano</div>
+      <div class="d">gasto e lucro do dia · mês · ano</div>
     </span>
   </button>
   <button class="menu-item" id="logoutBtn">
@@ -419,14 +419,14 @@
     </button>
     <div class="brand">
       <span class="brand-name">Caixa</span>
-      <span class="cat-pill" id="categoryLabel">Gasto do dia a dia</span>
+      <span class="cat-pill" id="categoryLabel">Gasto e lucro do dia · mês · ano</span>
     </div>
     <div class="date-chip" id="todayLabel"></div>
   </div>
   <h1 class="sr-only" id="pageTitle">Caixa</h1>
 
   <section class="hero" id="heroCard">
-    <div class="hero-kicker" id="pageSub">gasto e lucro do dia a dia</div>
+    <div class="hero-kicker" id="pageSub">gasto e lucro do dia · mês · ano</div>
     <div id="statBalance">
       <div class="hero-value" id="totalSaldo">R$ 0,00</div>
       <div class="hero-sub">saldo neste período</div>
@@ -712,10 +712,10 @@
     [$('menuTrampo')].forEach(b => b.classList.toggle('active', b.dataset.cat === cat));
 
     const isTrampo = cat === 'trampo';
-    $('categoryLabel').textContent = isTrampo ? 'Gasto do dia a dia' : 'Dia a dia';
-    $('pageTitle').textContent = isTrampo ? 'Caixa · Gasto do dia a dia' : 'Caixa · Dia a dia';
+    $('categoryLabel').textContent = isTrampo ? 'Gasto e lucro do dia · mês · ano' : 'Dia a dia';
+    $('pageTitle').textContent = isTrampo ? 'Caixa · Gasto e lucro do dia · mês · ano' : 'Caixa · Dia a dia';
     $('pageSub').textContent = isTrampo
-      ? 'gasto e lucro do· dia · mês · ano'
+      ? 'gasto e lucro do dia · mês · ano'
       : 'gastos pessoais do dia a dia · dia · mês · ano';
 
     // no "dia a dia" só existe gasto: esconde o alternador gasto/lucro e trava o tipo
