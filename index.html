@@ -296,15 +296,105 @@
     .entry .date{ display:none; }
     table.sheet{ font-size:11.5px; }
   }
+
+  /* Setup / Login screens */
+  .center-screen{
+    min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px 16px;
+  }
+  .setup-card{
+    max-width:480px; width:100%; background:var(--surface); border:1px solid var(--line);
+    border-radius:18px; padding:26px 24px;
+  }
+  .setup-card h1{ font-size:22px; font-weight:800; margin:0 0 8px; }
+  .setup-card p{ font-size:13px; color:var(--muted); line-height:1.7; }
+  .setup-card ol{ font-size:13px; line-height:1.9; padding-left:18px; color:var(--ink); }
+  .setup-card code{ background:var(--bg); border:1px solid var(--line-strong); padding:1px 5px; border-radius:4px; color:var(--green-deep); }
+  .setup-card pre{
+    background:var(--bg); border:1px solid var(--line-strong); border-radius:10px; padding:12px;
+    font-size:11px; overflow-x:auto; color:var(--ink); line-height:1.6; font-family:monospace;
+  }
+
+  .auth-bg{
+    background:radial-gradient(circle at 20% 15%, #1fbf63 0%, transparent 45%),
+               radial-gradient(circle at 85% 85%, #0a6b34 0%, transparent 50%),
+               linear-gradient(160deg, #0e2416 0%, #0a1a10 55%, #081209 100%);
+    position:relative; overflow:hidden;
+  }
+  .auth-bg::before{
+    content:''; position:absolute; inset:0;
+    background-image:radial-gradient(rgba(255,255,255,0.045) 1px, transparent 1px);
+    background-size:26px 26px; pointer-events:none;
+  }
+  .auth-card{
+    max-width:380px; width:100%; background:var(--surface);
+    border:1px solid rgba(255,255,255,0.08);
+    border-radius:22px; padding:32px 26px 28px;
+    box-shadow:0 30px 60px -20px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.03);
+    position:relative; z-index:1;
+    text-align:center;
+  }
+  .auth-logo{
+    width:52px; height:52px; margin:0 auto 14px; border-radius:16px;
+    background:linear-gradient(135deg, var(--green-deep), var(--green));
+    color:#fff; font-weight:800; font-size:16px;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 10px 20px -8px rgba(10,107,52,0.55);
+  }
+  .auth-card .brand-name{ font-size:21px; font-weight:800; display:block; margin-bottom:6px; letter-spacing:-0.01em; }
+  .auth-card p.lead{ font-size:12.5px; color:var(--muted); margin:0 0 22px; line-height:1.6; }
+  .auth-card .form-row,
+  .auth-card .field label{ text-align:left; }
+  .auth-tabs{ display:flex; gap:4px; background:var(--bg); border-radius:12px; padding:4px; margin-bottom:20px; }
+  .auth-tabs button{
+    flex:1; background:transparent; border:none; color:var(--muted); font-size:13px; font-weight:600;
+    padding:10px 4px; border-radius:9px; cursor:pointer;
+  }
+  .auth-tabs button.active{ background:var(--ink); color:#fff; }
+  .auth-msg{ font-size:12px; color:#c96a4c; min-height:16px; margin-top:10px; text-align:left; }
+  .auth-msg.ok{ color:var(--green-deep); }
+  .auth-card .submit-btn{ margin-top:8px; }
 </style>
 </head>
 <body>
+
+<!-- ======= TELA DE LOGIN / CADASTRO ======= -->
+<div class="center-screen auth-bg" id="authScreen" style="display:flex;">
+  <div class="auth-card">
+    <div class="auth-logo">R$</div>
+    <span class="brand-name">Caixa</span>
+    <p class="lead">controle seus gastos e lucros com sua própria conta</p>
+    <div class="auth-tabs" id="authTabs">
+      <button data-tab="login" class="active">Entrar</button>
+      <button data-tab="signup">Criar conta</button>
+    </div>
+    <div class="form-row stack">
+      <div class="field">
+        <label class="small">e-mail (gmail)</label>
+        <input type="email" id="authEmail" placeholder="voce@gmail.com" autocomplete="email">
+      </div>
+    </div>
+    <div class="form-row stack" id="authUserWrap" style="display:none;">
+      <div class="field">
+        <label class="small">nome de usuário</label>
+        <input type="text" id="authUser" placeholder="seu nome de usuário" autocomplete="username">
+      </div>
+    </div>
+    <div class="form-row stack">
+      <div class="field">
+        <label class="small">senha</label>
+        <input type="password" id="authPassword" placeholder="mínimo 4 caracteres" autocomplete="current-password">
+      </div>
+    </div>
+    <button class="submit-btn" id="authSubmit">Entrar</button>
+    <div class="auth-msg" id="authMsg"></div>
+  </div>
+</div>
 
 <div class="menu-overlay" id="menuOverlay"></div>
 <div class="menu-panel" id="menuPanel">
   <button class="menu-close" id="menuClose">×</button>
   <h2>Menu</h2>
-  <div class="menu-sub">seu controle financeiro</div>
+  <div class="menu-sub" id="menuUserEmail">seu controle financeiro</div>
   <button class="menu-item active" id="menuTrampo" data-cat="trampo">
     <span class="ico">T</span>
     <span>
@@ -312,9 +402,16 @@
       <div class="d">gasto e lucro do trabalho</div>
     </span>
   </button>
+  <button class="menu-item" id="logoutBtn">
+    <span class="ico" style="background:var(--muted);">⎋</span>
+    <span>
+      <div class="t">Sair</div>
+      <div class="d">encerrar sessão</div>
+    </span>
+  </button>
 </div>
 
-<div class="app">
+<div class="app" id="appScreen" style="display:none;">
 
   <div class="topbar">
     <button class="burger" id="burgerBtn" aria-label="menu">
@@ -412,21 +509,20 @@
   </div>
 
   <footer>
-    os dados ficam salvos neste navegador (localStorage). se você abrir o site no computador e no celular, cada um guarda seus próprios lançamentos — eles não sincronizam automaticamente entre aparelhos.
+    cada usuário tem sua própria conta e vê só os próprios lançamentos. os dados ficam salvos neste navegador — se abrir noutro aparelho, crie a conta de novo lá (não sincroniza sozinho entre aparelhos).
   </footer>
 
 </div>
 
 <script>
 (function(){
-  const STORAGE_KEY = 'caixa_entries_v2';
+  const USERS_KEY = 'caixa_users_v1';
+  const SESSION_KEY = 'caixa_session_v1';
   const CAT_KEY = 'caixa_category_v1';
   const GASTO_CATEGORIAS = ['Comida', 'Roupa', 'Corte de cabelo', 'Namorada', 'Presente', 'Setup', 'Lazer'];
 
-  let entries = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-  // migração: lançamentos antigos (sem categoria) viram "trampo"
-  entries = entries.map(en => en.cat ? en : { ...en, cat: 'trampo' });
-
+  let entries = [];
+  let currentUser = null;
   let category = localStorage.getItem(CAT_KEY) || 'trampo';
   let mode = 'dia';
   let view = 'lista';
@@ -454,8 +550,145 @@
   const pad = (n) => String(n).padStart(2,'0');
   const toISODate = (d) => d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
 
-  function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(entries)); }
   function saveCategory(){ localStorage.setItem(CAT_KEY, category); }
+
+  // ---- Contas de usuário (guardadas neste navegador) ----
+  function getUsers(){ return JSON.parse(localStorage.getItem(USERS_KEY) || '{}'); }
+  function saveUsers(users){ localStorage.setItem(USERS_KEY, JSON.stringify(users)); }
+
+  function randomSalt(){
+    return Array.from(crypto.getRandomValues(new Uint8Array(16))).map(b => b.toString(16).padStart(2,'0')).join('');
+  }
+  async function hashPassword(password, salt){
+    const enc = new TextEncoder().encode(password + '::' + salt);
+    const buf = await crypto.subtle.digest('SHA-256', enc);
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+  }
+
+  function entriesKeyFor(username){ return 'caixa_entries_v3::' + username; }
+
+  function loadEntries(){
+    if(!currentUser) return;
+    entries = JSON.parse(localStorage.getItem(entriesKeyFor(currentUser)) || '[]');
+  }
+  function persistEntries(){
+    if(!currentUser) return;
+    localStorage.setItem(entriesKeyFor(currentUser), JSON.stringify(entries));
+  }
+
+  // ---- Autenticação ----
+  let authMode = 'login';
+  $('authTabs').addEventListener('click', (e) => {
+    const btn = e.target.closest('button');
+    if(!btn) return;
+    authMode = btn.dataset.tab;
+    [...$('authTabs').children].forEach(b => b.classList.toggle('active', b === btn));
+    $('authSubmit').textContent = authMode === 'login' ? 'Entrar' : 'Criar conta';
+    $('authUserWrap').style.display = authMode === 'signup' ? 'block' : 'none';
+    $('authMsg').textContent = '';
+    $('authMsg').className = 'auth-msg';
+  });
+
+  $('authSubmit').addEventListener('click', async () => {
+    const username = $('authUser').value.trim().toLowerCase();
+    const email = $('authEmail').value.trim().toLowerCase();
+    const password = $('authPassword').value;
+    const msg = $('authMsg');
+    msg.className = 'auth-msg';
+
+    if(!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
+      msg.textContent = 'digite um e-mail válido.';
+      return;
+    }
+    if(!password){
+      msg.textContent = 'digite sua senha.';
+      return;
+    }
+    if(password.length < 4){
+      msg.textContent = 'a senha precisa ter pelo menos 4 caracteres.';
+      return;
+    }
+
+    $('authSubmit').disabled = true;
+    const users = getUsers();
+
+    if(authMode === 'signup'){
+      if(!username){
+        msg.textContent = 'escolha um nome de usuário.';
+        $('authSubmit').disabled = false;
+        return;
+      }
+      if(users[username]){
+        msg.textContent = 'esse nome de usuário já existe. escolha outro.';
+        $('authSubmit').disabled = false;
+        return;
+      }
+      const emailTaken = Object.values(users).some(u => u.email === email);
+      if(emailTaken){
+        msg.textContent = 'esse e-mail já está sendo usado em outra conta.';
+        $('authSubmit').disabled = false;
+        return;
+      }
+      const salt = randomSalt();
+      const hash = await hashPassword(password, salt);
+      users[username] = { salt, hash, email };
+      saveUsers(users);
+      localStorage.setItem(SESSION_KEY, username);
+      await login(username);
+    } else {
+      const foundUsername = Object.keys(users).find(u => users[u].email === email);
+      if(!foundUsername){
+        msg.textContent = 'e-mail não encontrado. crie uma conta.';
+        $('authSubmit').disabled = false;
+        return;
+      }
+      const user = users[foundUsername];
+      const hash = await hashPassword(password, user.salt);
+      if(hash !== user.hash){
+        msg.textContent = 'senha incorreta.';
+        $('authSubmit').disabled = false;
+        return;
+      }
+      localStorage.setItem(SESSION_KEY, foundUsername);
+      await login(foundUsername);
+    }
+    $('authSubmit').disabled = false;
+  });
+
+  $('logoutBtn').addEventListener('click', () => {
+    localStorage.removeItem(SESSION_KEY);
+    currentUser = null;
+    entries = [];
+    closeMenu();
+    showAuthScreen();
+  });
+
+  function showAuthScreen(){
+    $('appScreen').style.display = 'none';
+    $('authScreen').style.display = 'flex';
+    $('authUser').value = '';
+    $('authEmail').value = '';
+    $('authPassword').value = '';
+  }
+
+  async function login(username){
+    currentUser = username;
+    $('authScreen').style.display = 'none';
+    $('appScreen').style.display = 'block';
+    const users = getUsers();
+    $('menuUserEmail').textContent = (users[username] && users[username].email) || username;
+    setToday();
+    loadEntries();
+    setCategory(category);
+  }
+
+  // tenta continuar sessão já aberta neste navegador
+  const savedSession = localStorage.getItem(SESSION_KEY);
+  if(savedSession && getUsers()[savedSession]){
+    login(savedSession);
+  } else {
+    showAuthScreen();
+  }
 
   function setToday(){
     $('dataInput').value = toISODate(new Date());
@@ -595,7 +828,7 @@
       desc: desc || (isGasto ? categoria : 'lucro'),
       date: data
     });
-    save();
+    persistEntries();
     $('valorInput').value = '';
     $('descInput').value = '';
     $('categoriaInput').value = '';
@@ -617,7 +850,7 @@
     const btn = e.target.closest('.del');
     if(!btn) return;
     entries = entries.filter(en => en.id !== btn.dataset.id);
-    save();
+    persistEntries();
     render();
   });
 
@@ -849,8 +1082,6 @@
     return d.innerHTML;
   }
 
-  setToday();
-  setCategory(category);
 })();
 </script>
 </body>
