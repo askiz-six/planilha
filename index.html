@@ -4,13 +4,20 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Caixa — controle de gastos e lucro</title>
+<script>
+  (function(){
+    var saved = localStorage.getItem('caixa_theme_v1');
+    document.documentElement.setAttribute('data-theme', saved === 'light' ? 'light' : 'dark');
+  })();
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-  :root{
+  :root, [data-theme="light"]{
     --bg:#f3f8f5;
     --surface:#ffffff;
     --ink:#101f18;
+    --on-ink:#ffffff;
     --muted:#6c7c73;
     --green:#17a94d;
     --green-deep:#0a6b34;
@@ -18,16 +25,35 @@
     --line: rgba(16,31,24,0.09);
     --line-strong: rgba(16,31,24,0.15);
   }
+  [data-theme="dark"]{
+    --bg:#0c130f;
+    --surface:#141d17;
+    --ink:#eef3ee;
+    --on-ink:#0c130f;
+    --muted:#8aa196;
+    --green:#2fce76;
+    --green-deep:#3fdc84;
+    --green-soft:rgba(47,206,118,0.16);
+    --line: rgba(238,243,238,0.09);
+    --line-strong: rgba(238,243,238,0.18);
+  }
+  body, .add-card, .period-card, .entry, .webhook-row, .stat, .hero-chips, .menu-panel, .auth-card{
+    transition: background-color .2s ease, border-color .2s ease, color .2s ease;
+  }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
   body{
-    background:var(--bg);
+    background:
+      linear-gradient(var(--line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line) 1px, transparent 1px),
+      var(--bg);
+    background-size:24px 24px, 24px 24px, auto;
     color:var(--ink);
-    font-family:'Plus Jakarta Sans', sans-serif;
+    font-family:'JetBrains Mono', monospace;
     min-height:100vh;
     -webkit-font-smoothing:antialiased;
   }
-  button, input{ font-family:'Plus Jakarta Sans', sans-serif; transition:background-color .15s ease, border-color .15s ease, color .15s ease, opacity .15s ease, transform .12s ease, box-shadow .15s ease; }
+  button, input{ font-family:'JetBrains Mono', monospace; transition:background-color .15s ease, border-color .15s ease, color .15s ease, opacity .15s ease, transform .12s ease, box-shadow .15s ease; }
   .sr-only{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; }
 
   .app{ max-width:460px; margin:0 auto; padding:18px 16px 70px; }
@@ -36,13 +62,13 @@
   .topbar{ display:flex; align-items:center; gap:10px; margin-bottom:16px; }
   .burger{
     width:40px; height:40px; flex:0 0 auto;
-    background:var(--surface); border:1px solid var(--line-strong); border-radius:12px;
+    background:var(--surface); border:1px solid var(--line-strong); border-radius:6px;
     cursor:pointer; display:flex; flex-direction:column; justify-content:center; align-items:center; gap:4px;
   }
   .burger span{ display:block; width:16px; height:2px; border-radius:2px; background:var(--ink); }
   .burger:hover{ border-color:var(--green); }
   .brand{ display:flex; align-items:center; gap:8px; flex:1; min-width:0; }
-  .brand-name{ font-weight:800; font-size:15px; letter-spacing:-0.01em; }
+  .brand-name{ font-weight:700; font-size:15px; letter-spacing:0.02em; font-family:'Space Grotesk', sans-serif; text-transform:uppercase; }
   .cat-pill{
     font-size:11px; font-weight:600; color:var(--green-deep);
     background:var(--green-soft); padding:4px 10px; border-radius:999px; white-space:nowrap;
@@ -52,18 +78,28 @@
   /* Hero */
   .hero{
     background:linear-gradient(135deg, var(--green-deep), var(--green));
-    border-radius:22px;
+    border-radius:6px;
     padding:26px 22px 22px;
     color:#ffffff;
-    box-shadow:0 16px 30px -12px rgba(10,107,52,0.45);
+    box-shadow:0 0 0 1px rgba(255,255,255,0.08), 0 0 40px -8px var(--green), 0 16px 30px -12px rgba(10,107,52,0.5);
     margin-bottom:16px;
+    position:relative;
+    overflow:hidden;
   }
-  .hero-kicker{ font-size:12.5px; color:rgba(255,255,255,0.8); margin-bottom:6px; }
-  .hero-value{ font-size:38px; font-weight:800; letter-spacing:-0.01em; font-variant-numeric:tabular-nums; line-height:1.1; }
+  .hero::before{
+    content:''; position:absolute; inset:0; pointer-events:none;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.055) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.055) 1px, transparent 1px);
+    background-size:18px 18px;
+  }
+  .hero > *{ position:relative; z-index:1; }
+  .hero-kicker{ font-size:11.5px; color:rgba(255,255,255,0.82); margin-bottom:6px; text-transform:uppercase; letter-spacing:0.06em; }
+  .hero-value{ font-size:38px; font-weight:700; letter-spacing:0.01em; font-variant-numeric:tabular-nums; line-height:1.1; font-family:'Space Grotesk', sans-serif; text-shadow:0 0 24px rgba(255,255,255,0.25); }
   .hero-sub{ font-size:11.5px; color:rgba(255,255,255,0.72); margin-top:4px; }
   .hero-chips{ display:flex; gap:10px; margin-top:18px; }
   .chip{
-    flex:1; border-radius:14px; padding:12px 14px;
+    flex:1; border-radius:6px; padding:12px 14px;
     background:rgba(255,255,255,0.14);
   }
   .chip.expense{ background:rgba(0,0,0,0.22); }
@@ -74,21 +110,21 @@
 
   /* Period card */
   .period-card{
-    background:var(--surface); border:1px solid var(--line); border-radius:16px;
+    background:var(--surface); border:1px solid var(--line); border-radius:8px;
     padding:12px; margin-bottom:16px;
   }
-  nav.tabs{ display:flex; gap:4px; background:var(--bg); border-radius:11px; padding:4px; margin-bottom:10px; }
+  nav.tabs{ display:flex; gap:4px; background:var(--bg); border-radius:6px; padding:4px; margin-bottom:10px; }
   nav.tabs button{
     flex:1; background:transparent; border:none; color:var(--muted);
     font-size:13px; font-weight:600; padding:9px 4px; border-radius:8px; cursor:pointer;
   }
-  nav.tabs button.active{ background:var(--ink); color:#ffffff; }
+  nav.tabs button.active{ background:var(--ink); color:var(--on-ink); }
   nav.tabs button:not(.active):hover{ color:var(--ink); }
 
   .period-nav{ display:flex; align-items:center; justify-content:space-between; padding:2px 4px; }
   .period-nav button{
     background:transparent; border:1px solid var(--line-strong); color:var(--ink);
-    width:32px; height:32px; border-radius:10px; cursor:pointer; font-size:14px;
+    width:32px; height:32px; border-radius:5px; cursor:pointer; font-size:14px;
   }
   .period-nav button:hover{ border-color:var(--green); color:var(--green); }
   .period-nav .label{ font-size:14px; font-weight:700; }
@@ -99,24 +135,25 @@
 
   /* Add card */
   .add-card{
-    background:var(--surface); border:1px solid var(--line); border-radius:16px;
+    background:var(--surface); border:1px solid var(--line); border-radius:8px;
     padding:18px; margin-bottom:16px;
   }
   .add-card h2{ font-size:14.5px; font-weight:700; margin:0 0 12px; }
   .type-toggle{ display:flex; gap:8px; margin-bottom:14px; }
   .type-toggle button{
     flex:1; padding:11px; background:var(--bg); border:1px solid var(--line-strong); color:var(--muted);
-    font-size:13px; font-weight:600; cursor:pointer; border-radius:11px;
+    font-size:13px; font-weight:600; cursor:pointer; border-radius:6px;
     display:flex; align-items:center; justify-content:center; gap:6px;
   }
   .type-toggle button .ico{ font-weight:800; }
-  .type-toggle button.active.gasto{ background:var(--ink); border-color:var(--ink); color:#ffffff; }
+  .type-toggle button.active{ background:var(--green); border-color:var(--green); color:#ffffff; }
+  .type-toggle button.active.gasto{ background:var(--ink); border-color:var(--ink); color:var(--on-ink); }
   .type-toggle button.active.lucro{ background:var(--green); border-color:var(--green); color:#ffffff; }
 
   select{
     background:var(--bg); border:1px solid var(--line-strong); color:var(--ink);
-    padding:11px 12px; font-size:13.5px; width:100%; border-radius:11px;
-    font-family:'Plus Jakarta Sans', sans-serif; appearance:none;
+    padding:11px 12px; font-size:13.5px; width:100%; border-radius:6px;
+    font-family:'JetBrains Mono', monospace; appearance:none;
     background-image:url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%236c7c73'%3E%3Cpath fill-rule='evenodd' d='M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z' clip-rule='evenodd'/%3E%3C/svg%3E");
     background-repeat:no-repeat; background-position:right 12px center; background-size:16px;
     padding-right:34px;
@@ -129,7 +166,7 @@
     padding:10px 4px 2px; border-top:1px solid var(--line); margin-top:10px;
   }
   .filter-row label{ font-size:11px; font-weight:600; color:var(--muted); white-space:nowrap; }
-  .filter-row select{ width:auto; flex:0 0 auto; padding:7px 30px 7px 12px; font-size:12.5px; border-radius:9px; }
+  .filter-row select{ width:auto; flex:0 0 auto; padding:7px 30px 7px 12px; font-size:12.5px; border-radius:5px; }
 
   .cat-tag{
     font-size:10px; font-weight:600; color:var(--green-deep); background:var(--green-soft);
@@ -139,36 +176,47 @@
 
   .form-row{ display:flex; gap:10px; margin-bottom:10px; }
   .form-row.stack{ flex-direction:column; }
-  input[type=text], input[type=number], input[type=date]{
+  input[type=text], input[type=number], input[type=date], input[type=email], input[type=password]{
     background:var(--bg); border:1px solid var(--line-strong); color:var(--ink);
-    padding:11px 12px; font-size:13.5px; width:100%; border-radius:11px;
+    padding:11px 12px; font-size:13.5px; width:100%; border-radius:6px;
   }
-  input:focus{ outline:none; border-color:var(--green); box-shadow:0 0 0 3px var(--green-soft); }
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus{
+    -webkit-text-fill-color:var(--ink);
+    -webkit-box-shadow:0 0 0px 1000px var(--bg) inset;
+    box-shadow:0 0 0px 1000px var(--bg) inset;
+    caret-color:var(--ink);
+    transition:background-color 5000s ease-in-out 0s;
+  }
+  input:focus{ outline:none; border-color:var(--green); box-shadow:0 0 0 3px var(--green-soft), 0 0 14px -2px var(--green); }
   label.small{ font-size:11px; color:var(--muted); font-weight:600; display:block; margin-bottom:5px; }
   .field{ flex:1; }
   .submit-btn{
     width:100%; padding:13px; background:var(--green); color:#ffffff; border:none;
-    font-weight:700; font-size:13.5px; cursor:pointer; margin-top:6px; border-radius:12px;
+    font-weight:700; font-size:13.5px; cursor:pointer; margin-top:6px; border-radius:6px;
   }
-  .submit-btn:hover{ background:var(--green-deep); transform:translateY(-1px); }
+  .submit-btn:hover{ background:var(--green-deep); transform:translateY(-1px); box-shadow:0 0 20px -4px var(--green); }
+  .btn-ink{ background:var(--ink) !important; color:var(--on-ink) !important; }
+  .btn-ink:hover{ opacity:0.88; }
 
   /* Entries */
   .entries-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; padding:0 2px; }
   .entries-head h2{ font-size:13.5px; font-weight:700; color:var(--muted); margin:0; }
-  .view-toggle{ display:flex; gap:3px; background:var(--surface); border:1px solid var(--line); border-radius:9px; padding:3px; }
+  .view-toggle{ display:flex; gap:3px; background:var(--surface); border:1px solid var(--line); border-radius:5px; padding:3px; }
   .view-toggle button{
     background:transparent; border:none; color:var(--muted);
     font-size:11px; font-weight:600; padding:5px 10px; cursor:pointer; border-radius:6px;
   }
-  .view-toggle button.active{ background:var(--ink); color:#ffffff; }
+  .view-toggle button.active{ background:var(--ink); color:var(--on-ink); }
 
   .entry{
     display:flex; align-items:center; gap:11px;
-    background:var(--surface); border:1px solid var(--line); border-radius:13px;
+    background:var(--surface); border:1px solid var(--line); border-radius:6px;
     padding:12px 13px; margin-bottom:8px;
   }
   .entry .dot{
-    width:30px; height:30px; border-radius:9px; flex:0 0 auto;
+    width:30px; height:30px; border-radius:5px; flex:0 0 auto;
     display:flex; align-items:center; justify-content:center;
     font-weight:800; font-size:14px; color:#ffffff;
   }
@@ -187,11 +235,11 @@
   .entry .del:hover{ color:var(--ink); }
   .empty{
     color:var(--muted); font-size:13px; padding:28px 0; text-align:center;
-    background:var(--surface); border:1px dashed var(--line-strong); border-radius:13px;
+    background:var(--surface); border:1px dashed var(--line-strong); border-radius:6px;
   }
 
   .webhook-row{
-    background:var(--surface); border:1px solid var(--line); border-radius:13px;
+    background:var(--surface); border:1px solid var(--line); border-radius:6px;
     padding:13px; margin-bottom:8px;
   }
   .webhook-row .webhook-top{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px; }
@@ -203,16 +251,16 @@
   .webhook-row .webhook-url-row{ display:flex; gap:8px; }
   .webhook-row input{
     background:var(--bg); border:1px solid var(--line-strong); color:var(--ink);
-    padding:9px 10px; font-size:11px; width:100%; border-radius:9px;
+    padding:9px 10px; font-size:11px; width:100%; border-radius:5px;
   }
   .webhook-row .webhook-copy{
-    flex:0 0 auto; background:var(--ink); color:#fff; border:none; border-radius:9px;
+    flex:0 0 auto; background:var(--ink); color:#fff; border:none; border-radius:5px;
     padding:9px 12px; font-size:11.5px; font-weight:600; cursor:pointer;
   }
   .webhook-row .webhook-copy:hover{ background:var(--green-deep); }
 
   /* Planilha */
-  .sheet-wrap{ overflow-x:auto; background:var(--surface); border:1px solid var(--line); border-radius:14px; }
+  .sheet-wrap{ overflow-x:auto; background:var(--surface); border:1px solid var(--line); border-radius:6px; }
   table.sheet{ width:100%; border-collapse:collapse; font-size:12.5px; }
   table.sheet th{
     text-align:left; font-weight:700; color:var(--green-deep); font-size:10.5px;
@@ -265,7 +313,7 @@
   }
   .grid-sheet-wrap{ margin-bottom:14px; }
   .grid-sheet-wrap:last-child{ margin-bottom:0; }
-  .grid-hint{ text-align:center; font-family:'Plus Jakarta Sans', sans-serif; font-size:11px; color:#888; padding:0 10px 10px; background:#fff; }
+  .grid-hint{ text-align:center; font-family:'JetBrains Mono', monospace; font-size:11px; color:#888; padding:0 10px 10px; background:#fff; }
   table.grid-sheet tbody tr.month-row{ cursor:pointer; }
   table.grid-sheet tbody tr.month-row:hover td{ background:#eef2ff; }
   table.grid-sheet tfoot td.total-cell{ background:#ffffff; color:#000; font-style:normal; }
@@ -273,12 +321,12 @@
   table.cat-table td.cat-name-cell{ text-align:left; font-weight:700; }
   table.cat-table td.cat-values-cell{ text-align:left; white-space:normal; font-weight:400; color:#333; font-size:11px; }
   .cat-empty{
-    text-align:center; padding:18px 10px; color:#888; font-family:'Plus Jakarta Sans', sans-serif; font-size:12.5px; background:#fff;
+    text-align:center; padding:18px 10px; color:#888; font-family:'JetBrains Mono', monospace; font-size:12.5px; background:#fff;
   }
 
   footer{
     margin-top:24px; font-size:10.5px; color:var(--muted); line-height:1.7;
-    background:var(--surface); border:1px solid var(--line); border-radius:13px; padding:14px 16px;
+    background:var(--surface); border:1px solid var(--line); border-radius:6px; padding:14px 16px;
   }
 
   /* Menu drawer */
@@ -295,11 +343,11 @@
   .menu-item{
     display:flex; align-items:center; gap:12px;
     width:100%; text-align:left; background:var(--bg); border:1px solid var(--line);
-    color:var(--ink); padding:13px; margin-bottom:10px; cursor:pointer; border-radius:14px;
+    color:var(--ink); padding:13px; margin-bottom:10px; cursor:pointer; border-radius:6px;
   }
   .menu-item .ico{
-    width:36px; height:36px; border-radius:10px; flex:0 0 auto;
-    display:flex; align-items:center; justify-content:center; font-weight:800; font-size:15px; color:#fff;
+    width:36px; height:36px; border-radius:5px; flex:0 0 auto;
+    display:flex; align-items:center; justify-content:center; font-weight:800; font-size:15px; color:var(--on-ink);
     background:var(--ink);
   }
   .menu-item .t{ font-size:13.5px; font-weight:700; margin-bottom:2px; }
@@ -307,7 +355,7 @@
   .menu-item.active{ border-color:var(--green); background:var(--green-soft); }
   .menu-item.active .t{ color:var(--green-deep); }
   .menu-close{
-    position:absolute; top:18px; right:18px; width:30px; height:30px; border-radius:9px;
+    position:absolute; top:18px; right:18px; width:30px; height:30px; border-radius:5px;
     background:var(--bg); border:none; color:var(--muted); font-size:16px; cursor:pointer;
   }
   .menu-close:hover{ color:var(--ink); }
@@ -324,14 +372,14 @@
   }
   .setup-card{
     max-width:480px; width:100%; background:var(--surface); border:1px solid var(--line);
-    border-radius:18px; padding:26px 24px;
+    border-radius:8px; padding:26px 24px;
   }
   .setup-card h1{ font-size:22px; font-weight:800; margin:0 0 8px; }
   .setup-card p{ font-size:13px; color:var(--muted); line-height:1.7; }
   .setup-card ol{ font-size:13px; line-height:1.9; padding-left:18px; color:var(--ink); }
   .setup-card code{ background:var(--bg); border:1px solid var(--line-strong); padding:1px 5px; border-radius:4px; color:var(--green-deep); }
   .setup-card pre{
-    background:var(--bg); border:1px solid var(--line-strong); border-radius:10px; padding:12px;
+    background:var(--bg); border:1px solid var(--line-strong); border-radius:5px; padding:12px;
     font-size:11px; overflow-x:auto; color:var(--ink); line-height:1.6; font-family:monospace;
   }
 
@@ -349,13 +397,13 @@
   .auth-card{
     max-width:380px; width:100%; background:var(--surface);
     border:1px solid rgba(255,255,255,0.08);
-    border-radius:22px; padding:32px 26px 28px;
+    border-radius:8px; padding:32px 26px 28px;
     box-shadow:0 30px 60px -20px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.03);
     position:relative; z-index:1;
     text-align:center;
   }
   .auth-logo{
-    width:52px; height:52px; margin:0 auto 14px; border-radius:16px;
+    width:52px; height:52px; margin:0 auto 14px; border-radius:8px;
     background:linear-gradient(135deg, var(--green-deep), var(--green));
     color:#fff; font-weight:800; font-size:16px;
     display:flex; align-items:center; justify-content:center;
@@ -365,12 +413,12 @@
   .auth-card p.lead{ font-size:12.5px; color:var(--muted); margin:0 0 22px; line-height:1.6; }
   .auth-card .form-row,
   .auth-card .field label{ text-align:left; }
-  .auth-tabs{ display:flex; gap:4px; background:var(--bg); border-radius:12px; padding:4px; margin-bottom:20px; }
+  .auth-tabs{ display:flex; gap:4px; background:var(--bg); border-radius:6px; padding:4px; margin-bottom:20px; }
   .auth-tabs button{
     flex:1; background:transparent; border:none; color:var(--muted); font-size:13px; font-weight:600;
-    padding:10px 4px; border-radius:9px; cursor:pointer;
+    padding:10px 4px; border-radius:5px; cursor:pointer;
   }
-  .auth-tabs button.active{ background:var(--ink); color:#fff; }
+  .auth-tabs button.active{ background:var(--ink); color:var(--on-ink); }
   .auth-msg{ font-size:12px; color:#c96a4c; min-height:16px; margin-top:10px; text-align:left; }
   .auth-msg.ok{ color:var(--green-deep); }
   .auth-card .submit-btn{ margin-top:8px; }
@@ -431,7 +479,7 @@
     </span>
   </button>
   <button class="menu-item" id="menuWebhooks">
-    <span class="ico" style="background:var(--ink);">W</span>
+    <span class="ico btn-ink">W</span>
     <span>
       <div class="t">Webhook</div>
       <div class="d">criar e gerenciar seus webhooks</div>
@@ -515,7 +563,7 @@
     <p style="font-size:12px;color:var(--muted);margin:0 0 14px;line-height:1.6;">
       toda venda aprovada pelo webhook cai aqui como lucro automaticamente. crie/gerencie suas URLs de webhook (cada uma com um código próprio) no menu.
     </p>
-    <button class="submit-btn" id="goToWebhooksBtn" style="background:var(--ink);">gerenciar meus webhooks</button>
+    <button class="submit-btn btn-ink" id="goToWebhooksBtn">gerenciar meus webhooks</button>
     <button class="submit-btn" id="syncVendasBtn" style="margin-top:10px;">🔄 atualizar vendas agora</button>
   </div>
 
@@ -587,6 +635,14 @@
 
   <div id="settingsPanel" style="display:none;">
     <div class="add-card">
+      <h2>Aparência</h2>
+      <div class="type-toggle" id="themeToggle">
+        <button data-theme-value="light">☀ Claro</button>
+        <button data-theme-value="dark">● Escuro</button>
+      </div>
+    </div>
+
+    <div class="add-card">
       <h2>Nome de usuário</h2>
       <div class="form-row stack">
         <div class="field">
@@ -594,7 +650,7 @@
           <input type="text" id="newUsernameInput" placeholder="novo usuário" autocomplete="username">
         </div>
       </div>
-      <button class="submit-btn" id="saveUsernameBtn" style="background:var(--ink);">salvar novo usuário</button>
+      <button class="submit-btn btn-ink" id="saveUsernameBtn">salvar novo usuário</button>
       <div class="auth-msg" id="usernameMsg"></div>
     </div>
 
@@ -606,7 +662,7 @@
           <input type="email" id="newEmailInput" placeholder="novo@gmail.com" autocomplete="email">
         </div>
       </div>
-      <button class="submit-btn" id="saveEmailBtn" style="background:var(--ink);">salvar novo e-mail</button>
+      <button class="submit-btn btn-ink" id="saveEmailBtn">salvar novo e-mail</button>
       <div class="auth-msg" id="emailMsg"></div>
     </div>
 
@@ -624,7 +680,7 @@
           <input type="password" id="newPasswordInput" placeholder="mínimo 4 caracteres" autocomplete="new-password">
         </div>
       </div>
-      <button class="submit-btn" id="savePasswordBtn" style="background:var(--ink);">salvar nova senha</button>
+      <button class="submit-btn btn-ink" id="savePasswordBtn">salvar nova senha</button>
       <div class="auth-msg" id="passwordMsg"></div>
     </div>
 
@@ -938,7 +994,19 @@
     $('newPasswordInput').value = '';
     $('deletePasswordInput').value = '';
     ['usernameMsg','emailMsg','passwordMsg','deleteMsg'].forEach(id => { $(id).textContent = ''; $(id).className = 'auth-msg'; });
+
+    const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+    [...$('themeToggle').children].forEach(b => b.classList.toggle('active', b.dataset.themeValue === currentTheme));
   }
+
+  $('themeToggle').addEventListener('click', (e) => {
+    const btn = e.target.closest('button');
+    if(!btn) return;
+    const theme = btn.dataset.themeValue;
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('caixa_theme_v1', theme);
+    [...$('themeToggle').children].forEach(b => b.classList.toggle('active', b === btn));
+  });
 
   $('menuSettings').addEventListener('click', () => { showSettingsPanel(); closeMenu(); });
 
