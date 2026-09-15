@@ -771,6 +771,14 @@
 
     <div class="add-card">
       <div class="entries-head">
+        <h2>📥 Leads em tempo real</h2>
+        <div class="badge-live" id="dashLeadsCount">0 hoje</div>
+      </div>
+      <div id="dashLeads"></div>
+    </div>
+
+    <div class="add-card">
+      <div class="entries-head">
         <h2>Últimas vendas</h2>
         <div class="badge-live">atualizado</div>
       </div>
@@ -798,6 +806,15 @@
         <button data-theme-value="light">☀ Claro</button>
         <button data-theme-value="dark">● Escuro</button>
       </div>
+    </div>
+
+    <div class="add-card">
+      <h2>Notificações no celular</h2>
+      <p style="font-size:12px;color:var(--muted);margin:0 0 14px;line-height:1.6;">
+        receba um aviso no celular toda vez que uma venda for gerada ou aprovada. funciona mesmo com o site fechado (precisa abrir esse site pelo navegador do celular, uma vez, pra ativar).
+      </p>
+      <button class="submit-btn" id="enableNotifBtn">🔔 ativar notificações</button>
+      <div class="auth-msg" id="notifMsg"></div>
     </div>
 
     <div class="add-card">
@@ -1046,6 +1063,7 @@
     setToday();
     loadEntries();
     await setCategory(category);
+    registerServiceWorker();
   }
 
   // tenta continuar sessão já aberta neste navegador
@@ -1137,6 +1155,34 @@
     renderDashGraph();
     renderDashTable();
     renderDashLive();
+    await renderDashLeads();
+  }
+
+  async function renderDashLeads(){
+    try{
+      const res = await fetch('/api/leads?user=' + encodeURIComponent(currentUser));
+      const leads = res.ok ? await res.json() : [];
+      const todayStr = toISODate(new Date());
+      const todayCount = leads.filter(l => l.date === todayStr).length;
+      $('dashLeadsCount').textContent = todayCount + ' hoje';
+
+      const recent = leads.slice().reverse().slice(0, 5);
+      if(!recent.length){
+        $('dashLeads').innerHTML = '<div class="empty">nenhum lead ainda — os que entrarem pelo bot aparecem aqui</div>';
+        return;
+      }
+      $('dashLeads').innerHTML = recent.map(l => `
+        <div class="dash-live-row">
+          <div class="icon">👤</div>
+          <div class="info">
+            <strong>${escapeHtml(l.name || 'Novo lead')}</strong>
+            <small>${escapeHtml(l.category || 'Webhook')}${l.source ? ' · ' + escapeHtml(l.source) : ''}</small>
+          </div>
+        </div>
+      `).join('');
+    } catch(e){
+      $('dashLeads').innerHTML = '<div class="empty">não consegui carregar os leads</div>';
+    }
   }
 
   function renderDashCards(){
@@ -1255,6 +1301,8 @@
 
     const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
     [...$('themeToggle').children].forEach(b => b.classList.toggle('active', b.dataset.themeValue === currentTheme));
+
+    updateNotifBtnState();
   }
 
   $('themeToggle').addEventListener('click', (e) => {
@@ -1267,6 +1315,80 @@
   });
 
   $('menuSettings').addEventListener('click', () => { showSettingsPanel(); closeMenu(); });
+
+  // ---- Notificações push ----
+  const VAPID_PUBLIC_KEY = 'BBG2OwrTb9MsgekjRW0vo_bPf3T265MbRwqWRr5LUJSaizFuzjAtEz988KN5nOyz-F5FgRc7vSKopQKTHd6ieEU';
+
+  function urlBase64ToUint8Array(base64String){
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const rawData = atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for(let i = 0; i < rawData.length; ++i){ outputArray[i] = rawData.charCodeAt(i); }
+    return outputArray;
+  }
+
+  async function registerServiceWorker(){
+    if(!('serviceWorker' in navigator)) return;
+    try{ await navigator.serviceWorker.register('/sw.js'); } catch(e){ /* ambiente sem suporte, segue sem quebrar */ }
+  }
+
+  async function updateNotifBtnState(){
+    const btn = $('enableNotifBtn');
+    if(!('serviceWorker' in navigator) || !('PushManager' in window)){
+      btn.textContent = 'notificações não são suportadas nesse navegador';
+      btn.disabled = true;
+      return;
+    }
+    if(Notification.permission === 'denied'){
+      btn.textContent = 'notificações bloqueadas — libere nas configurações do navegador';
+      btn.disabled = true;
+      return;
+    }
+    try{
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.getSubscription();
+      btn.textContent = sub ? '🔔 notificações ativadas' : '🔔 ativar notificações';
+    } catch(e){
+      btn.textContent = '🔔 ativar notificações';
+    }
+  }
+
+  $('enableNotifBtn').addEventListener('click', async () => {
+    const msg = $('notifMsg');
+    msg.className = 'auth-msg';
+    msg.textContent = '';
+    const btn = $('enableNotifBtn');
+    btn.disabled = true;
+    try{
+      await registerServiceWorker();
+      const permission = await Notification.requestPermission();
+      if(permission !== 'granted'){
+        msg.textContent = 'permissão negada. pra ativar depois, libere notificações nas configurações do navegador.';
+        btn.disabled = false;
+        return;
+      }
+      const reg = await navigator.serviceWorker.ready;
+      let sub = await reg.pushManager.getSubscription();
+      if(!sub){
+        sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+        });
+      }
+      await fetch('/api/subscribe?user=' + encodeURIComponent(currentUser), {
+        method:'POST',
+        headers:{ 'Content-Type':'application/json' },
+        body: JSON.stringify({ subscription: sub })
+      });
+      msg.classList.add('ok');
+      msg.textContent = 'notificações ativadas nesse aparelho!';
+      btn.textContent = '🔔 notificações ativadas';
+    } catch(e){
+      msg.textContent = 'não consegui ativar: ' + (e.message || 'erro desconhecido');
+    }
+    btn.disabled = false;
+  });
 
   // ---- Trocar nome de usuário ----
   $('saveUsernameBtn').addEventListener('click', async () => {
@@ -1392,6 +1514,12 @@
     list.innerHTML = '<div class="empty">carregando...</div>';
     try{
       const res = await fetch('/api/webhooks?user=' + encodeURIComponent(currentUser));
+      if(!res.ok){
+        let errMsg = 'erro ' + res.status;
+        try{ const errBody = await res.json(); if(errBody && errBody.error) errMsg = errBody.error; }catch(e){}
+        list.innerHTML = '<div class="empty">não consegui carregar (' + escapeHtml(errMsg) + '). verifique se o Vercel KV está conectado ao projeto.</div>';
+        return;
+      }
       const webhooks = await res.json();
       if(!Array.isArray(webhooks) || webhooks.length === 0){
         list.innerHTML = '<div class="empty">nenhum webhook criado ainda</div>';
@@ -1415,7 +1543,7 @@
         `;
       }).join('');
     } catch(e){
-      list.innerHTML = '<div class="empty">não consegui carregar. tente de novo.</div>';
+      list.innerHTML = '<div class="empty">não consegui carregar: ' + escapeHtml(e.message || 'erro desconhecido') + '</div>';
     }
   }
 
@@ -1424,15 +1552,21 @@
     $('createWebhookBtn').disabled = true;
     $('createWebhookBtn').textContent = 'criando...';
     try{
-      await fetch('/api/webhooks?user=' + encodeURIComponent(currentUser), {
+      const res = await fetch('/api/webhooks?user=' + encodeURIComponent(currentUser), {
         method:'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name })
       });
-      $('webhookNameInput').value = '';
-      await loadWebhooksList();
+      if(!res.ok){
+        let errMsg = 'erro ' + res.status;
+        try{ const errBody = await res.json(); if(errBody && errBody.error) errMsg = errBody.error; }catch(e){}
+        alert('não consegui criar o webhook: ' + errMsg + '\n\nverifique se o Vercel KV está conectado ao projeto (Storage → Create Database → KV) e se o projeto foi feito redeploy depois disso.');
+      } else {
+        $('webhookNameInput').value = '';
+        await loadWebhooksList();
+      }
     } catch(e){
-      alert('não consegui criar o webhook. tente de novo.');
+      alert('não consegui criar o webhook: ' + (e.message || 'erro de rede'));
     }
     $('createWebhookBtn').disabled = false;
     $('createWebhookBtn').textContent = '+ criar novo webhook';
